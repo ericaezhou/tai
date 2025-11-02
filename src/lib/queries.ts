@@ -402,6 +402,7 @@ export async function getAssignmentRubric(assignmentId: string): Promise<Assignm
 export type StudentPerformance = {
   id: string;
   name: string;
+  email: string;
   score?: number;
 };
 
@@ -430,6 +431,7 @@ export async function getStudentPerformanceForAssignment(assignmentId: string, c
       studentPerformances.push({
         id: student.id,
         name: student.name,
+        email: student.email,
         score: submission?.score
       });
     }

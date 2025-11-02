@@ -39,6 +39,7 @@ export type Assignment = {
 export type StudentScore = {
   id: string
   name: string
+  email: string
   score: number
 }
 
@@ -115,6 +116,7 @@ export default function Page() {
               .map(s => ({
                 id: s.id,
                 name: s.name,
+                email: s.email,
                 score: s.score!
               }))
 

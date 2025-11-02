@@ -171,6 +171,7 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
             <TableHeader>
               <TableRow>
                 <TableHead>Student Name</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead className="text-right">Score</TableHead>
               </TableRow>
             </TableHeader>
@@ -178,6 +179,7 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
               {students.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell>{student.email}</TableCell>
                   <TableCell className="text-right">
                     <span
                       className={`font-semibold ${
