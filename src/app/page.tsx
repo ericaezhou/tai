@@ -7,6 +7,8 @@ import { AssignmentDetail } from "@/components/assignment-detail"
 import { StudentOverview } from "@/components/student-overview"
 import { StudentAssignmentDetail } from "@/components/student-assignment-detail"
 import { StudentQuestionDetail } from "@/components/student-question-detail"
+import { sharedAssignments } from "@/lib/assignments"
+import Sidebar from "@/components/Sidebar"
 
 export type Assignment = {
   id: string
@@ -248,27 +250,33 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       {mode === "ta" ? (
-        <>
-          {view === "overview" && (
-            <AssignmentsOverview
-              assignments={assignments}
-              onCreateNew={() => setView("create")}
-              onSelectAssignment={handleSelectAssignment}
-              mode={mode}
-              onToggleMode={toggleMode}
-            />
-          )}
-          {view === "create" && (
-            <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
-          )}
-          {view === "detail" && selectedAssignment && (
-            <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
-          )}
-        </>
+        <div className="flex min-h-screen bg-gray-50">
+          <Sidebar
+            courseName="CS 101: Data Structures"
+            assignments={sharedAssignments}
+          />
+          <div className="flex-1 overflow-auto">
+            {view === "overview" && (
+              <AssignmentsOverview
+                assignments={assignments}
+                onCreateNew={() => setView("create")}
+                onSelectAssignment={handleSelectAssignment}
+                mode={mode}
+                onToggleMode={toggleMode}
+              />
+            )}
+            {view === "create" && (
+              <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
+            )}
+            {view === "detail" && selectedAssignment && (
+              <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
+            )}
+          </div>
+        </div>
       ) : (
-        <>
+        <div className="min-h-screen bg-background">
           {studentView === "overview" && (
             <StudentOverview
               courses={courses}
@@ -290,8 +298,8 @@ export default function Page() {
               onBack={handleBackToAssignment}
             />
           )}
-        </>
+        </div>
       )}
-    </div>
+    </>
   )
 }

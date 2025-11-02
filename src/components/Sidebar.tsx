@@ -20,7 +20,7 @@ export default function Sidebar({ courseName, assignments, currentAssignmentId }
       {/* TAI Branding */}
       <div className="p-6 border-b border-gray-200">
         <Link href="/">
-          <h1 className="text-3xl font-bold text-blue-600 cursor-pointer hover:text-blue-700">
+          <h1 className="text-3xl font-bold text-indigo-600 cursor-pointer hover:text-indigo-700">
             TAI
           </h1>
         </Link>
