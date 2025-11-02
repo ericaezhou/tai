@@ -77,6 +77,7 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
               <TableRow>
                 <TableHead>Assignment Name</TableHead>
                 <TableHead>Due Date</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Score</TableHead>
               </TableRow>
             </TableHeader>
@@ -89,23 +90,26 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                 >
                   <TableCell className="font-medium">{assignment.name}</TableCell>
                   <TableCell>{new Date(assignment.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
                     {assignment.status === "graded" ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span className="font-semibold">{assignment.score}</span>
-                      </div>
+                      <Badge variant="default" className="gap-1 bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Graded
+                      </Badge>
                     ) : assignment.status === "ungraded" ? (
                       <Badge variant="secondary" className="gap-1">
                         <Clock className="h-3 w-3" />
-                        Ungraded
+                        Not Yet Graded
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="gap-1 text-orange-600 border-orange-200">
                         <Upload className="h-3 w-3" />
-                        Not Submitted
+                        Unsubmitted
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {assignment.status === "graded" ? assignment.score : "--"}
                   </TableCell>
                 </TableRow>
               ))}
