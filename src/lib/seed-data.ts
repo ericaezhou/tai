@@ -594,7 +594,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '1', // Q1: Basic Probability (20 points)
         pointsAwarded: 18,
         feedback: 'Great work! Minor error in sample space enumeration.',
-        submissionContent: '/probability-sample-space.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -604,7 +604,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '2', // Q2: Conditional Probability (25 points)
         pointsAwarded: 25,
         feedback: 'Perfect application of conditional probability formula.',
-        submissionContent: '/conditional-probability-work.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -614,7 +614,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '3', // Q3: Bayes Theorem (30 points)
         pointsAwarded: 27,
         feedback: 'Excellent Bayes theorem application. Minor calculation error in final step.',
-        submissionContent: '/bayes-theorem-solution.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -660,7 +660,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '7', // Q1: Law of Total Probability (20 points)
         pointsAwarded: 18,
         feedback: 'Good application of law of total probability. Minor error in partition.',
-        submissionContent: '/law-of-total-probability.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -670,7 +670,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '8', // Q2: Joint Distributions (25 points)
         pointsAwarded: 23,
         feedback: 'Strong work on joint distributions. Marginal calculation needs clarification.',
-        submissionContent: '/joint-distributions.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -680,7 +680,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '9', // Q3: Moment Generating Functions (30 points)
         pointsAwarded: 28,
         feedback: 'Excellent MGF derivation. Minor arithmetic error in moment calculation.',
-        submissionContent: '/mgf-work.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -690,7 +690,7 @@ export async function seedDatabase(): Promise<void> {
         questionId: '10', // Q4: Continuous Random Variables (25 points)
         pointsAwarded: 23,
         feedback: 'Good proof. Could be more rigorous in notation.',
-        submissionContent: '/continuous-rv-proof.jpg',
+        submissionContent: '/placeholder.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       }
