@@ -362,12 +362,20 @@ export default function Page() {
   }
 
   const handleSubmitAssignment = async (files: File[], textSubmission: string) => {
-    if (!selectedStudentAssignment) return
+    console.log("[handleSubmitAssignment] Function called")
+    console.log("[handleSubmitAssignment] Files:", files)
+    console.log("[handleSubmitAssignment] Text submission:", textSubmission)
+    console.log("[handleSubmitAssignment] Selected assignment:", selectedStudentAssignment)
+
+    if (!selectedStudentAssignment) {
+      console.log("[handleSubmitAssignment] No selected assignment, returning early")
+      return
+    }
 
     try {
-      console.log("Submitting assignment:", selectedStudentAssignment.name)
-      console.log("Files:", files.map(f => f.name))
-      console.log("Text submission:", textSubmission)
+      console.log("[handleSubmitAssignment] Submitting assignment:", selectedStudentAssignment.name)
+      console.log("[handleSubmitAssignment] Files:", files.map(f => f.name))
+      console.log("[handleSubmitAssignment] Text submission:", textSubmission)
 
       // Use the database submission function
       const success = await submitAssignmentToDb(

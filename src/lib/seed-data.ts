@@ -166,9 +166,21 @@ export async function seedDatabase(): Promise<void> {
       updatedAt: new Date()
     };
 
+    const assignment3b: Assignment = {
+      id: '3b',
+      courseId: course1.id,
+      name: 'HW3 - Continuous Distributions',
+      description: 'Continuous probability distributions, PDFs, CDFs, and transformations',
+      dueDate: new Date('2025-12-01'),
+      totalPoints: 80,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
     await db.saveAssignment(assignment1);
     await db.saveAssignment(assignment2);
     await db.saveAssignment(assignment3);
+    await db.saveAssignment(assignment3b);
 
     // Create assignments for Course 2
     const assignment4: Assignment = {
@@ -307,6 +319,41 @@ export async function seedDatabase(): Promise<void> {
     ];
 
     for (const question of questions3) {
+      await db.saveAssignmentQuestion(question);
+    }
+
+    // Create questions for Assignment 3b (HW3 - Continuous Distributions)
+    const questions3b = [
+      {
+        id: '10b',
+        assignmentId: assignment3b.id,
+        name: 'Question 1: Uniform Distribution',
+        description: 'Analyze uniform continuous distributions and calculate probabilities',
+        totalPoints: 20,
+        orderIndex: 0,
+        createdAt: new Date()
+      },
+      {
+        id: '10c',
+        assignmentId: assignment3b.id,
+        name: 'Question 2: Exponential Distribution',
+        description: 'Apply exponential distribution to model waiting times',
+        totalPoints: 25,
+        orderIndex: 1,
+        createdAt: new Date()
+      },
+      {
+        id: '10d',
+        assignmentId: assignment3b.id,
+        name: 'Question 3: Normal Distribution',
+        description: 'Use normal distribution and standard normal tables',
+        totalPoints: 35,
+        orderIndex: 2,
+        createdAt: new Date()
+      }
+    ];
+
+    for (const question of questions3b) {
       await db.saveAssignmentQuestion(question);
     }
 
@@ -478,6 +525,50 @@ export async function seedDatabase(): Promise<void> {
       updatedAt: new Date()
     };
     await db.saveAssignmentRubric(rubric3);
+
+    const rubric3b: AssignmentRubric = {
+      id: generateId('rubric_'),
+      assignmentId: assignment3b.id,
+      assignmentName: 'HW3 - Continuous Distributions',
+      questions: [
+        {
+          id: 'hw3-q1',
+          questionNumber: 1,
+          summary: 'Analyze uniform continuous distributions and calculate probabilities',
+          totalPoints: 20,
+          criteria: [
+            { id: 'hw3-q1-c1', points: 8, description: 'Correct PDF identification for uniform distribution' },
+            { id: 'hw3-q1-c2', points: 8, description: 'Accurate probability calculations using integration' },
+            { id: 'hw3-q1-c3', points: 4, description: 'Clear work and justification' },
+          ],
+        },
+        {
+          id: 'hw3-q2',
+          questionNumber: 2,
+          summary: 'Apply exponential distribution to model waiting times',
+          totalPoints: 25,
+          criteria: [
+            { id: 'hw3-q2-c1', points: 10, description: 'Correct exponential distribution setup' },
+            { id: 'hw3-q2-c2', points: 10, description: 'Accurate calculation of waiting time probabilities' },
+            { id: 'hw3-q2-c3', points: 5, description: 'Memoryless property explanation' },
+          ],
+        },
+        {
+          id: 'hw3-q3',
+          questionNumber: 3,
+          summary: 'Use normal distribution and standard normal tables',
+          totalPoints: 35,
+          criteria: [
+            { id: 'hw3-q3-c1', points: 15, description: 'Correct standardization to Z-score' },
+            { id: 'hw3-q3-c2', points: 15, description: 'Accurate use of normal tables and calculations' },
+            { id: 'hw3-q3-c3', points: 5, description: 'Interpretation and conclusion' },
+          ],
+        },
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    await db.saveAssignmentRubric(rubric3b);
 
     // Create student submissions
     // Assignment 1 - Graded for student1 (John Doe)
