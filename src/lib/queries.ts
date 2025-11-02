@@ -41,28 +41,28 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
   try {
     // Get courses for the student
     const courses = await db.getCoursesForStudent(studentId);
-    
+
     const coursesWithAssignments: CourseWithAssignments[] = [];
-    
+
     for (const course of courses) {
       // Get assignments for each course
       const assignments = await db.getAssignmentsByCourse(course.id);
-      
+
       const studentAssignments: StudentAssignment[] = [];
-      
+
       for (const assignment of assignments) {
         // Get student's submission for this assignment
         const submission = await db.getStudentSubmissionByAssignment(assignment.id, studentId);
-        
+
         // Get assignment questions
         const assignmentQuestions = await db.getAssignmentQuestions(assignment.id);
-        
+
         let questions: Question[] | undefined;
-        
+
         if (submission && assignmentQuestions.length > 0) {
           // Get question submissions for graded assignments
           const questionSubmissions = await db.getQuestionSubmissions(submission.id);
-          
+
           questions = assignmentQuestions.map(aq => {
             const questionSubmission = questionSubmissions.find(qs => qs.questionId === aq.id);
             return {
@@ -75,7 +75,7 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
             };
           });
         }
-        
+
         const studentAssignment: StudentAssignment = {
           id: assignment.id,
           name: assignment.name,
@@ -84,17 +84,17 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
           status: submission?.status || "not_submitted",
           questions
         };
-        
+
         studentAssignments.push(studentAssignment);
       }
-      
+
       coursesWithAssignments.push({
         id: course.id,
         name: course.name,
         assignments: studentAssignments
       });
     }
-    
+
     return coursesWithAssignments;
   } catch (error) {
     console.error('Error fetching courses with assignments:', error);
@@ -106,15 +106,15 @@ export async function getAssignmentWithSubmission(assignmentId: string, studentI
   try {
     const assignment = await db.getAssignment(assignmentId);
     if (!assignment) return null;
-    
+
     const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
     const assignmentQuestions = await db.getAssignmentQuestions(assignmentId);
-    
+
     let questions: Question[] | undefined;
-    
+
     if (submission && assignmentQuestions.length > 0) {
       const questionSubmissions = await db.getQuestionSubmissions(submission.id);
-      
+
       questions = assignmentQuestions.map(aq => {
         const questionSubmission = questionSubmissions.find(qs => qs.questionId === aq.id);
         return {
@@ -127,7 +127,7 @@ export async function getAssignmentWithSubmission(assignmentId: string, studentI
         };
       });
     }
-    
+
     return {
       id: assignment.id,
       name: assignment.name,

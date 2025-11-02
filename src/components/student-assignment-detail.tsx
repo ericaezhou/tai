@@ -1,9 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react"
 import type { StudentAssignment, Question } from "@/app/page"
 
 type StudentAssignmentDetailProps = {
@@ -13,6 +14,19 @@ type StudentAssignmentDetailProps = {
 }
 
 export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }: StudentAssignmentDetailProps) {
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
+
+  const toggleQuestion = (questionId: string) => {
+    setExpandedQuestions(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(questionId)) {
+        newSet.delete(questionId)
+      } else {
+        newSet.add(questionId)
+      }
+      return newSet
+    })
+  }
   if (!assignment.questions || assignment.status === "ungraded") {
     return (
       <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -33,7 +47,7 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
   const earnedPoints = assignment.questions.reduce((sum, q) => sum + q.pointsAwarded, 0)
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <Button onClick={onBack} variant="ghost" className="mb-6 gap-2">
         <ArrowLeft className="h-4 w-4" />
         Back to Assignments
@@ -58,46 +72,121 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Questions</CardTitle>
-          <CardDescription>Click on a question to view your submission and feedback</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Question</TableHead>
-                <TableHead className="text-right">Points</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignment.questions.map((question) => (
-                <TableRow
-                  key={question.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => onSelectQuestion(question)}
-                >
-                  <TableCell className="font-medium">{question.name}</TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={
-                        question.pointsAwarded === question.totalPoints
-                          ? "text-green-500 font-semibold"
-                          : question.pointsAwarded / question.totalPoints >= 0.8
-                            ? "text-blue-500 font-semibold"
-                            : "text-orange-500 font-semibold"
-                      }
-                    >
-                      {question.pointsAwarded}/{question.totalPoints}
-                    </span>
-                  </TableCell>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Student Submissions */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Your Submissions</CardTitle>
+            <CardDescription>Review your answers for each question</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {assignment.questions.map((question, index) => (
+              <div key={question.id} className="space-y-2">
+                <div className="bg-muted p-4 rounded-md">
+                  {question.submission ? (
+                    <pre className="whitespace-pre-wrap text-sm font-mono">{question.submission}</pre>
+                  ) : (
+                    <p className="text-muted-foreground italic text-sm">No submission provided</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Right Column - Feedback Table */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Questions & Feedback</CardTitle>
+            <CardDescription>Click on a question to view detailed feedback</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>Question</TableHead>
+                  <TableHead className="text-right">Points</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {assignment.questions.map((question, index) => (
+                  <>
+                    <TableRow
+                      key={question.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => toggleQuestion(question.id)}
+                    >
+                      <TableCell className="w-12">
+                        {expandedQuestions.has(question.id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {question.name}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={
+                            question.pointsAwarded === question.totalPoints
+                              ? "text-green-500 font-semibold"
+                              : question.pointsAwarded / question.totalPoints >= 0.8
+                                ? "text-blue-500 font-semibold"
+                                : "text-orange-500 font-semibold"
+                          }
+                        >
+                          {question.pointsAwarded}/{question.totalPoints}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                    {expandedQuestions.has(question.id) && (
+                      <TableRow key={`${question.id}-expanded`}>
+                        <TableCell colSpan={3} className="p-0">
+                          <div className="bg-muted/30 p-6 border-t">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-sm">Feedback</h4>
+                                <div className="text-right">
+                                  <div className="text-lg font-bold">
+                                    <span
+                                      className={
+                                        question.pointsAwarded === question.totalPoints
+                                          ? "text-green-500"
+                                          : question.pointsAwarded / question.totalPoints >= 0.8
+                                            ? "text-blue-500"
+                                            : "text-orange-500"
+                                      }
+                                    >
+                                      {question.pointsAwarded}
+                                    </span>
+                                    <span className="text-muted-foreground">/{question.totalPoints}</span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {Math.round((question.pointsAwarded / question.totalPoints) * 100)}%
+                                  </div>
+                                </div>
+                              </div>
+                              {question.feedback ? (
+                                <div className="bg-background p-4 rounded-md border">
+                                  <p className="text-sm">{question.feedback}</p>
+                                </div>
+                              ) : (
+                                <p className="text-muted-foreground italic text-sm">No feedback provided</p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
