@@ -26,6 +26,7 @@ import {
   type InstructorAssignment,
   type StudentPerformance
 } from "@/lib/queries"
+import { db } from "@/lib/database"
 
 export type Assignment = {
   id: string
@@ -80,6 +81,7 @@ export default function Page() {
   const [selectedStudentAssignment, setSelectedStudentAssignment] = useState<DbStudentAssignment | null>(null)
   const [selectedQuestion, setSelectedQuestion] = useState<DbQuestion | null>(null)
   const [courses, setCourses] = useState<CourseWithAssignments[]>([])
+  const [instructorCourses, setInstructorCourses] = useState<CourseWithAssignments[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Initialize database and load data on component mount
@@ -96,6 +98,28 @@ export default function Page() {
         const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
         setCourses(coursesData)
         console.log('Courses loaded:', coursesData)
+
+        // Load all courses for instructor view (using the same data structure)
+        console.log('Loading all courses for instructor...')
+        const allCourses = await db.getAllCourses()
+        const instructorCourses: CourseWithAssignments[] = await Promise.all(
+          allCourses.map(async (course) => {
+            const assignments = await getAssignmentsForCourse(course.id)
+            return {
+              id: course.id,
+              name: course.name,
+              assignments: assignments.map(a => ({
+                id: a.id,
+                name: a.name,
+                dueDate: a.dueDate,
+                status: "graded" as const, // Default status for instructor view
+                score: undefined
+              }))
+            }
+          })
+        )
+        setInstructorCourses(instructorCourses)
+        console.log('Instructor courses loaded:', instructorCourses)
 
         // Load instructor data
         console.log('Loading assignments for instructor...')
@@ -339,6 +363,28 @@ export default function Page() {
     setAssignments((prev) => [...prev, completeAssignment])
     console.log("[Page] Assignment added to list")
 
+    // Reload instructor courses data to reflect the new assignment
+    console.log("[Page] Reloading instructor courses to include new assignment...")
+    const allCourses = await db.getAllCourses()
+    const updatedInstructorCourses: CourseWithAssignments[] = await Promise.all(
+      allCourses.map(async (course) => {
+        const assignments = await getAssignmentsForCourse(course.id)
+        return {
+          id: course.id,
+          name: course.name,
+          assignments: assignments.map(a => ({
+            id: a.id,
+            name: a.name,
+            dueDate: a.dueDate,
+            status: "graded" as const, // Default status for instructor view
+            score: undefined
+          }))
+        }
+      })
+    )
+    setInstructorCourses(updatedInstructorCourses)
+    console.log("[Page] Instructor courses reloaded with new assignment")
+
     // Reload student data so it shows up when switching to student mode
     console.log("[Page] Reloading student data to include new assignment...")
     const studentId = 'student_1'
@@ -468,56 +514,42 @@ export default function Page() {
           </div>
         </div>
       ) : mode === "ta" ? (
-        <div className="flex min-h-screen bg-gray-50">
-          <Sidebar
-            courseName="STAT 210: Probability Theory"
-            assignments={assignments}
-            currentAssignmentId={view === "detail" || view === "rubric" ? selectedAssignment?.id : undefined}
-            onSelectAssignment={(assignment) => {
-              setSelectedAssignment(assignment)
-              setView("detail")
-            }}
-            onBackToOverview={() => {
-              setView("overview")
-              setSelectedAssignment(null)
-            }}
-          />
-          <div className="flex-1 overflow-auto">
-            {view === "overview" && (
-              <AssignmentsOverview
-                assignments={assignments}
-                onCreateNew={() => setView("create")}
-                onSelectAssignment={(assignment) => {
-                  setSelectedAssignment(assignment)
-                  setView("detail")
-                }}
-                onViewRubric={(assignment) => {
-                  setSelectedAssignment(assignment)
-                  setRubricData(assignment.rubricBreakdown || null)
-                  setView("rubric")
-                }}
-                mode={mode}
-                onToggleMode={toggleMode}
-              />
-            )}
-            {view === "create" && (
-              <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
-            )}
-            {view === "rubric" && (
-              <RubricBreakdownPage
-                rubricData={rubricData}
-                onBack={() => {
-                  // If we have a pending assignment, we're in creation mode - go back to create
-                  // Otherwise, we're viewing an existing rubric - go back to overview
-                  setView(pendingAssignment ? "create" : "overview")
-                }}
-                onConfirm={handleConfirmRubric}
-              />
-            )}
-            {view === "detail" && selectedAssignment && (
-              <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
-            )}
-          </div>
+        <div className="min-h-screen bg-background">
+          {view === "overview" && (
+            <AssignmentsOverview
+              assignments={assignments}
+              onCreateNew={() => setView("create")}
+              onSelectAssignment={(assignment) => {
+                setSelectedAssignment(assignment)
+                setView("detail")
+              }}
+              onViewRubric={(assignment) => {
+                setSelectedAssignment(assignment)
+                setRubricData(assignment.rubricBreakdown || null)
+                setView("rubric")
+              }}
+              mode={mode}
+              onToggleMode={toggleMode}
+              courses={instructorCourses}
+            />
+          )}
+          {view === "create" && (
+            <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
+          )}
+          {view === "rubric" && (
+            <RubricBreakdownPage
+              rubricData={rubricData}
+              onBack={() => {
+                // If we have a pending assignment, we're in creation mode - go back to create
+                // Otherwise, we're viewing an existing rubric - go back to overview
+                setView(pendingAssignment ? "create" : "overview")
+              }}
+              onConfirm={handleConfirmRubric}
+            />
+          )}
+          {view === "detail" && selectedAssignment && (
+            <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
+          )}
         </div>
       ) : (
         <div className="min-h-screen bg-background">

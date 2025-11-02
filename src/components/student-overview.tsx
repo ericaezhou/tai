@@ -24,6 +24,25 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
     setIsOpen(false)
   }
 
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-green-600"
+    if (score >= 60) return "text-yellow-600"
+    return "text-red-600"
+  }
+
+  const getUrgencyProgress = (dueDate: string) => {
+    const now = new Date()
+    const due = new Date(dueDate)
+    const oneWeekBefore = new Date(due.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    if (now < oneWeekBefore) return 0
+    if (now > due) return 100
+
+    const totalTime = due.getTime() - oneWeekBefore.getTime()
+    const elapsedTime = now.getTime() - oneWeekBefore.getTime()
+    return (elapsedTime / totalTime) * 100
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
@@ -77,7 +96,7 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
               <TableRow>
                 <TableHead>Assignment Name</TableHead>
                 <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Score</TableHead>
               </TableRow>
             </TableHeader>
@@ -89,8 +108,22 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                   onClick={() => onSelectAssignment(assignment)}
                 >
                   <TableCell className="font-medium">{assignment.name}</TableCell>
-                  <TableCell>{new Date(assignment.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
+                  <TableCell className="relative">
+                    <div className="absolute inset-0 flex">
+                      <div
+                        className="bg-gray-200/30"
+                        style={{ width: `${getUrgencyProgress(assignment.dueDate)}%` }}
+                      />
+                      <div
+                        className="bg-blue-500/20"
+                        style={{ width: `${100 - getUrgencyProgress(assignment.dueDate)}%` }}
+                      />
+                    </div>
+                    <div className="relative z-10">
+                      {new Date(assignment.dueDate).toLocaleDateString()}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
                     {assignment.status === "graded" ? (
                       <Badge variant="default" className="gap-1 bg-green-100 text-green-800 border-green-200">
                         <CheckCircle2 className="h-3 w-3" />
@@ -109,7 +142,13 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                     )}
                   </TableCell>
                   <TableCell className="text-right font-semibold">
-                    {assignment.status === "graded" ? assignment.score : "--"}
+                    {assignment.status === "graded" ? (
+                      <span className={getScoreColor(assignment.score || 0)}>
+                        {assignment.score}
+                      </span>
+                    ) : (
+                      "--"
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

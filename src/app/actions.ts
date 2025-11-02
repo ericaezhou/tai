@@ -244,7 +244,6 @@ Important:
 
 export async function gradeAssignment(assignmentId: string, studentId: string) {
   try {
-    const assignment = await db.getAssignment(assignmentId);
     const questions = await db.getAssignmentQuestions(assignmentId);
     const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
     const solutions = await db.getSolutionsByAssignment(assignmentId);
