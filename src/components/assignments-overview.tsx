@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -9,10 +10,9 @@ import type { Assignment } from "@/app/page"
 type AssignmentsOverviewProps = {
   assignments: Assignment[]
   onCreateNew: () => void
-  onSelectAssignment: (assignment: Assignment) => void
 }
 
-export function AssignmentsOverview({ assignments, onCreateNew, onSelectAssignment }: AssignmentsOverviewProps) {
+export function AssignmentsOverview({ assignments, onCreateNew }: AssignmentsOverviewProps) {
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
@@ -51,17 +51,23 @@ export function AssignmentsOverview({ assignments, onCreateNew, onSelectAssignme
               </TableHeader>
               <TableBody>
                 {assignments.map((assignment) => (
-                  <TableRow
-                    key={assignment.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => onSelectAssignment(assignment)}
-                  >
-                    <TableCell className="font-medium">{assignment.name}</TableCell>
-                    <TableCell>{new Date(assignment.dueDate).toLocaleDateString()}</TableCell>
+                  <TableRow key={assignment.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      <Link href={`/assignment/${assignment.id}`} className="block">
+                        {assignment.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/assignment/${assignment.id}`} className="block">
+                        {new Date(assignment.dueDate).toLocaleDateString()}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        View Details
-                      </Button>
+                      <Link href={`/assignment/${assignment.id}`}>
+                        <Button variant="ghost" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

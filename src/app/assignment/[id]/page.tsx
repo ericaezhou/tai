@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { mockAssignmentData } from "@/lib/mockData";
+import { sharedAssignments } from "@/lib/assignments";
 import Sidebar from "@/components/Sidebar";
 import DistributionGraph from "@/components/DistributionGraph";
 import InsightsPanel from "@/components/InsightsPanel";
@@ -29,15 +30,6 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
     // TODO: Navigate to detailed submission view
   };
 
-  // Mock assignments data for sidebar
-  const assignments = [
-    { id: "1", name: "Assignment 1 - Basics" },
-    { id: "2", name: "Assignment 2 - Algorithms" },
-    { id: "3", name: "Assignment 3 - Data Structures" },
-    { id: "4", name: "Midterm Exam" },
-    { id: "5", name: "Final Project" },
-  ];
-
   // Get question display names (Q1, Q2, Q3, Q4)
   const getQuestionDisplayName = (questionId: string) => {
     const index = questions.findIndex((q) => q.id === questionId);
@@ -45,14 +37,14 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
   };
 
   // Get assignment name based on ID
-  const assignmentName = assignments.find((a) => a.id === params.id)?.name || "Assignment";
+  const assignmentName = sharedAssignments.find((a) => a.id === params.id)?.name || "Assignment";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Left Sidebar */}
       <Sidebar
         courseName="CS 101: Data Structures"
-        assignments={assignments}
+        assignments={sharedAssignments}
         currentAssignmentId={params.id}
       />
 
