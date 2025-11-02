@@ -580,6 +580,7 @@ export async function seedDatabase(): Promise<void> {
       score: 70, // 18 + 25 + 27 = 70 out of 75
       structuredAnswer: [],
       submittedAt: new Date('2025-09-14'),
+      published: true, // Published grades are visible to students
       createdAt: new Date('2025-09-14'),
       updatedAt: new Date('2025-09-16')
     };
@@ -632,6 +633,7 @@ export async function seedDatabase(): Promise<void> {
       status: 'ungraded',
       structuredAnswer: [],
       submittedAt: new Date('2025-10-14'),
+      published: false, // Not yet graded, so not published
       createdAt: new Date('2025-10-14'),
       updatedAt: new Date('2025-10-14')
     };
@@ -647,6 +649,7 @@ export async function seedDatabase(): Promise<void> {
       score: 92, // 18 + 23 + 28 + 23 = 92 out of 100
       structuredAnswer: [],
       submittedAt: new Date('2025-11-07'),
+      published: true, // Published grades are visible to students
       createdAt: new Date('2025-11-07'),
       updatedAt: new Date('2025-11-08')
     };
@@ -709,6 +712,7 @@ export async function seedDatabase(): Promise<void> {
       score: 95,
       structuredAnswer: [],
       submittedAt: new Date('2025-02-09'),
+      published: true, // Published grades are visible to students
       createdAt: new Date('2025-02-09'),
       updatedAt: new Date('2025-02-12')
     };
@@ -750,6 +754,7 @@ export async function seedDatabase(): Promise<void> {
       status: 'ungraded',
       structuredAnswer: [],
       submittedAt: new Date('2025-03-31'),
+      published: false, // Not yet graded, so not published
       createdAt: new Date('2025-03-31'),
       updatedAt: new Date('2025-03-31')
     };
@@ -765,6 +770,7 @@ export async function seedDatabase(): Promise<void> {
       score: 85,
       structuredAnswer: [],
       submittedAt: new Date('2025-09-14'),
+      published: true,
       createdAt: new Date('2025-09-14'),
       updatedAt: new Date('2025-09-16')
     };
@@ -779,6 +785,7 @@ export async function seedDatabase(): Promise<void> {
       score: 78,
       structuredAnswer: [],
       submittedAt: new Date('2025-09-15'),
+      published: true,
       createdAt: new Date('2025-09-15'),
       updatedAt: new Date('2025-09-16')
     };
@@ -793,6 +800,7 @@ export async function seedDatabase(): Promise<void> {
       score: 88,
       structuredAnswer: [],
       submittedAt: new Date('2025-09-14'),
+      published: true,
       createdAt: new Date('2025-09-14'),
       updatedAt: new Date('2025-09-16')
     };
@@ -807,6 +815,7 @@ export async function seedDatabase(): Promise<void> {
       score: 95,
       structuredAnswer: [],
       submittedAt: new Date('2025-09-13'),
+      published: true,
       createdAt: new Date('2025-09-13'),
       updatedAt: new Date('2025-09-16')
     };
@@ -822,6 +831,7 @@ export async function seedDatabase(): Promise<void> {
       score: 91,
       structuredAnswer: [],
       submittedAt: new Date('2025-10-14'),
+      published: true,
       createdAt: new Date('2025-10-14'),
       updatedAt: new Date('2025-10-16')
     };
@@ -836,6 +846,7 @@ export async function seedDatabase(): Promise<void> {
       score: 82,
       structuredAnswer: [],
       submittedAt: new Date('2025-10-15'),
+      published: true,
       createdAt: new Date('2025-10-15'),
       updatedAt: new Date('2025-10-16')
     };
@@ -850,6 +861,7 @@ export async function seedDatabase(): Promise<void> {
       score: 79,
       structuredAnswer: [],
       submittedAt: new Date('2025-10-14'),
+      published: true,
       createdAt: new Date('2025-10-14'),
       updatedAt: new Date('2025-10-16')
     };
@@ -864,6 +876,7 @@ export async function seedDatabase(): Promise<void> {
       score: 87,
       structuredAnswer: [],
       submittedAt: new Date('2025-10-13'),
+      published: true,
       createdAt: new Date('2025-10-13'),
       updatedAt: new Date('2025-10-16')
     };
@@ -879,6 +892,7 @@ export async function seedDatabase(): Promise<void> {
       score: 87,
       structuredAnswer: [],
       submittedAt: new Date('2025-11-07'),
+      published: true,
       createdAt: new Date('2025-11-07'),
       updatedAt: new Date('2025-11-08')
     };
@@ -893,6 +907,7 @@ export async function seedDatabase(): Promise<void> {
       score: 75,
       structuredAnswer: [],
       submittedAt: new Date('2025-11-07'),
+      published: true,
       createdAt: new Date('2025-11-07'),
       updatedAt: new Date('2025-11-08')
     };
@@ -907,6 +922,7 @@ export async function seedDatabase(): Promise<void> {
       score: 90,
       structuredAnswer: [],
       submittedAt: new Date('2025-11-07'),
+      published: true,
       createdAt: new Date('2025-11-07'),
       updatedAt: new Date('2025-11-08')
     };
@@ -921,6 +937,7 @@ export async function seedDatabase(): Promise<void> {
       score: 94,
       structuredAnswer: [],
       submittedAt: new Date('2025-11-06'),
+      published: true,
       createdAt: new Date('2025-11-06'),
       updatedAt: new Date('2025-11-08')
     };

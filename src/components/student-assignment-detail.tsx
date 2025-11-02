@@ -35,7 +35,8 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
       .replace(/^•/gm, '• ') // Ensure proper spacing after bullet points
       .trim()
   }
-  if (!assignment.questions || assignment.status === "ungraded") {
+
+  if (!assignment.questions || assignment.status === "ungraded" || (assignment.status === "graded" && !assignment.published)) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <Button onClick={onBack} variant="ghost" className="mb-6 gap-2">
@@ -45,7 +46,11 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
 
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">{assignment.name}</h2>
-          <p className="text-muted-foreground">This assignment has not been graded yet.</p>
+          <p className="text-muted-foreground">
+            {assignment.status === "graded" && !assignment.published
+              ? "This assignment has been submitted. Grades will be visible once published by your instructor."
+              : "This assignment has not been graded yet."}
+          </p>
         </div>
       </div>
     )

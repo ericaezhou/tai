@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Upload } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import type { Assignment } from "@/app/page"
@@ -11,9 +11,10 @@ import type { Assignment } from "@/app/page"
 type AssignmentDetailProps = {
   assignment: Assignment
   onBack: () => void
+  onPublishGrades?: (assignmentId: string) => void
 }
 
-export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) {
+export function AssignmentDetail({ assignment, onBack, onPublishGrades }: AssignmentDetailProps) {
   const students = assignment.students || []
 
   // Calculate statistics
@@ -38,10 +39,21 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <Button variant="ghost" onClick={onBack} className="mb-6 gap-2">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Overview
-      </Button>
+      <div className="flex items-center justify-between mb-6">
+        <Button variant="ghost" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Overview
+        </Button>
+        {onPublishGrades && (
+          <Button
+            onClick={() => onPublishGrades(assignment.id)}
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <Upload className="h-4 w-4" />
+            Publish Scores
+          </Button>
+        )}
+      </div>
 
       <div className="mb-6">
         <h1 className="text-4xl font-bold tracking-tight text-balance">{assignment.name}</h1>

@@ -28,7 +28,7 @@ export function AssignmentsOverview({
   mode,
   onToggleMode,
 }: AssignmentsOverviewProps) {
-  const [selectedCourse, setSelectedCourse] = useState<Course>(courses[0])
+  const [selectedCourse, setSelectedCourse] = useState<Course | undefined>(courses[0])
   const [isOpen, setIsOpen] = useState(false)
 
   const handleCourseSelect = (course: Course) => {
@@ -47,6 +47,17 @@ export function AssignmentsOverview({
     const totalTime = due.getTime() - oneWeekBefore.getTime()
     const elapsedTime = now.getTime() - oneWeekBefore.getTime()
     return (elapsedTime / totalTime) * 100
+  }
+
+  // If no courses available yet, show a loading or empty state
+  if (!selectedCourse) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading courses...</p>
+        </div>
+      </div>
+    )
   }
 
   // For instructor view, show all assignments since they're already filtered by course

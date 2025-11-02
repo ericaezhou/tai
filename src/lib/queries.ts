@@ -111,10 +111,12 @@ async function mockGradeAssignment(assignmentId: string, studentId: string): Pro
     }
 
     // Update the main submission with total score and graded status
+    // Keep published as false - instructor must manually publish grades
     const updatedSubmission: StudentAssignmentSubmission = {
       ...submission,
       score: totalScore,
       status: 'graded',
+      published: submission.published || false, // Preserve existing published status or default to false
       updatedAt: new Date(),
     };
 
@@ -145,6 +147,7 @@ export type StudentAssignment = {
   dueDate: string;
   score?: number;
   status: "graded" | "ungraded" | "not_submitted";
+  published?: boolean;
   questions?: Question[];
 };
 
@@ -209,6 +212,7 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
           dueDate: assignment.dueDate.toISOString(),
           score: submission?.score,
           status: submission?.status || "not_submitted",
+          published: submission?.published || false,
           questions
         };
 
@@ -292,6 +296,7 @@ export async function submitAssignment(
       submittedAt: new Date(),
       textSubmission: textSubmission || undefined,
       structuredAnswer: structuredAnswers,
+      published: false, // Grades not published until instructor manually publishes
       createdAt: existingSubmission?.createdAt || new Date(),
       updatedAt: new Date()
     };
@@ -331,6 +336,32 @@ export async function submitAssignment(
     return true;
   } catch (error) {
     console.error('Error submitting assignment:', error);
+    return false;
+  }
+}
+
+// Publish grades for an assignment to make them visible to students
+export async function publishGrades(assignmentId: string): Promise<boolean> {
+  try {
+    // Get all submissions for this assignment
+    const assignmentSubmissions = await db.getSubmissionsByAssignment(assignmentId);
+
+    // Update each submission to set published = true
+    for (const submission of assignmentSubmissions) {
+      if (submission.status === 'graded') {
+        const updatedSubmission: StudentAssignmentSubmission = {
+          ...submission,
+          published: true,
+          updatedAt: new Date()
+        };
+        await db.saveStudentSubmission(updatedSubmission);
+      }
+    }
+
+    console.log(`Published grades for ${assignmentSubmissions.length} submissions`);
+    return true;
+  } catch (error) {
+    console.error('Error publishing grades:', error);
     return false;
   }
 }
