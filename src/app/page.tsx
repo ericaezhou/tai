@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { AssignmentsOverview } from "@/components/assignments-overview"
-import { CreateAssignment } from "@/components/create-assignment"
+import CreateAssignment from "@/components/create-assignment"
 import { AssignmentDetail } from "@/components/assignment-detail"
 import { StudentOverview } from "@/components/student-overview"
 import { StudentAssignmentDetail } from "@/components/student-assignment-detail"

@@ -4,127 +4,127 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Upload, FileText } from "lucide-react"
-import type { Assignment } from "@/app/page"
+import { Card } from "@/components/ui/card"
+import { Upload } from "lucide-react"
 
-type CreateAssignmentProps = {
-  onBack: () => void
-  onCreate: (assignment: Assignment) => void
-}
+export default function CreateAssignmentPage() {
+  const [questionFile, setQuestionFile] = useState<File | null>(null)
+  const [rubricFile, setRubricFile] = useState<File | null>(null)
 
-export function CreateAssignment({ onBack, onCreate }: CreateAssignmentProps) {
-  const [name, setName] = useState("")
-  const [dueDate, setDueDate] = useState("")
-  const [rubric, setRubric] = useState("")
-  const [fileName, setFileName] = useState<string | null>(null)
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setFileName(file.name)
-      // In a real app, you would read the file content here
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setRubric(event.target?.result as string)
-      }
-      reader.readAsText(file)
+  const handleQuestionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setQuestionFile(e.target.files[0])
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (name && dueDate) {
-      onCreate({
-        id: Date.now().toString(),
-        name,
-        dueDate,
-        rubric,
-        students: [],
-      })
+  const handleRubricUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setRubricFile(e.target.files[0])
     }
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Button variant="ghost" onClick={onBack} className="mb-6 gap-2">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Overview
-      </Button>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        <Card className="p-6 sm:p-8">
+          <h1 className="mb-8 text-3xl font-bold text-foreground">Create Assignment</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Assignment</CardTitle>
-          <CardDescription>Set up a new assignment with grading rubric</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Assignment Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Midterm Exam, Final Project"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+          <div className="space-y-6">
+            {/* Assignment Name */}
+            <div>
+              <Label htmlFor="assignment-name" className="text-sm font-semibold">
+                Assignment Name
+              </Label>
+              <Input id="assignment-name" placeholder="Enter assignment name" className="mt-2" />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rubric">Grading Rubric</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  id="rubric-upload"
-                  className="hidden"
-                  accept=".txt,.pdf,.doc,.docx"
-                  onChange={handleFileUpload}
-                />
-                <label htmlFor="rubric-upload" className="cursor-pointer">
-                  <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm font-medium mb-1">{fileName ? fileName : "Click to upload rubric file"}</p>
-                  <p className="text-xs text-muted-foreground">Supports TXT, PDF, DOC, DOCX</p>
+            {/* Question Section */}
+            <div>
+              <Label className="text-sm font-semibold">Question</Label>
+              <div className="mt-2">
+                <label
+                  htmlFor="question-upload"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
+                >
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {questionFile ? questionFile.name : "Upload PDF"}
+                  </span>
+                  <input
+                    id="question-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="sr-only"
+                    onChange={handleQuestionUpload}
+                  />
                 </label>
               </div>
-              {fileName && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                  <FileText className="h-4 w-4" />
-                  <span>{fileName}</span>
-                </div>
-              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="rubric-text">Or paste rubric text</Label>
+            {/* Rubric Section */}
+            <div>
+              <Label className="text-sm font-semibold">Rubric</Label>
+              <div className="mt-2">
+                <label
+                  htmlFor="rubric-upload"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
+                >
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {rubricFile ? rubricFile.name : "Upload PDF"}
+                  </span>
+                  <input
+                    id="rubric-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="sr-only"
+                    onChange={handleRubricUpload}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Special Instructions */}
+            <div>
+              <Label htmlFor="special-instructions" className="text-sm font-semibold">
+                Special Instructions <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
               <Textarea
-                id="rubric-text"
-                placeholder="Enter grading criteria, point distribution, and evaluation guidelines..."
-                value={rubric}
-                onChange={(e) => setRubric(e.target.value)}
-                rows={8}
-                className="font-mono text-sm"
+                id="special-instructions"
+                placeholder="Enter any special instructions for this assignment..."
+                className="mt-2 min-h-[120px] resize-none"
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" size="lg" className="flex-1">
-                Create Assignment
-              </Button>
-              <Button type="button" variant="outline" size="lg" onClick={onBack}>
-                Cancel
+            {/* Date Fields */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="start-date" className="text-sm font-semibold">
+                  Start Date
+                </Label>
+                <Input id="start-date" type="date" className="mt-2" />
+              </div>
+
+              <div>
+                <Label htmlFor="due-date" className="text-sm font-semibold">
+                  Due Date
+                </Label>
+                <Input id="due-date" type="date" className="mt-2" />
+              </div>
+            </div>
+
+            {/* Next Button */}
+            <div className="flex justify-end pt-4">
+              <Button size="lg" className="min-w-[120px]">
+                Next
               </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }
