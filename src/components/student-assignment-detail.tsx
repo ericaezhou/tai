@@ -113,7 +113,7 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
-                  <TableHead className="break-words">Question</TableHead>
+                  <TableHead className="min-w-0">Question</TableHead>
                   <TableHead className="text-right w-20">Points</TableHead>
                 </TableRow>
               </TableHeader>
@@ -131,7 +131,7 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
                           <ChevronRight className="h-4 w-4" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium break-words">
+                      <TableCell className="font-medium truncate max-w-0">
                         {question.name}
                       </TableCell>
                       <TableCell className="text-right w-20">
