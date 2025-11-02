@@ -270,8 +270,10 @@ export default function Page() {
     setView("rubric")
   }
 
-  const handleConfirmRubric = () => {
+  const handleConfirmRubric = (updatedRubricData: RubricBreakdown) => {
     // Here you would save the assignment with the confirmed rubric
+    // The updatedRubricData contains all the edits made by the TA
+    setRubricData(updatedRubricData)
     setView("overview")
   }
 

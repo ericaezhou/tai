@@ -1,9 +1,12 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, CheckCircle2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, CheckCircle2, X, Plus } from "lucide-react"
 
 export type ScoringCriteria = {
   id: string
@@ -27,10 +30,51 @@ export type RubricBreakdown = {
 interface RubricBreakdownPageProps {
   rubricData: RubricBreakdown
   onBack: () => void
-  onConfirm: () => void
+  onConfirm: (updatedData: RubricBreakdown) => void
 }
 
-function QuestionCard({ question }: { question: RubricQuestion }) {
+interface QuestionCardProps {
+  question: RubricQuestion
+  onUpdateQuestion: (updatedQuestion: RubricQuestion) => void
+}
+
+function QuestionCard({ question, onUpdateQuestion }: QuestionCardProps) {
+  const updateSummary = (summary: string) => {
+    onUpdateQuestion({ ...question, summary })
+  }
+
+  const updateCriterion = (criterionId: string, field: "points" | "description", value: string | number) => {
+    const updatedCriteria = question.criteria.map((c) => {
+      if (c.id === criterionId) {
+        if (field === "points") {
+          // Allow empty string or convert to number
+          const pointValue = value === "" ? 0 : Number(value)
+          return { ...c, points: pointValue }
+        }
+        return { ...c, description: value as string }
+      }
+      return c
+    })
+    const totalPoints = updatedCriteria.reduce((sum, c) => sum + c.points, 0)
+    onUpdateQuestion({ ...question, criteria: updatedCriteria, totalPoints })
+  }
+
+  const deleteCriterion = (criterionId: string) => {
+    const updatedCriteria = question.criteria.filter((c) => c.id !== criterionId)
+    const totalPoints = updatedCriteria.reduce((sum, c) => sum + c.points, 0)
+    onUpdateQuestion({ ...question, criteria: updatedCriteria, totalPoints })
+  }
+
+  const addCriterion = () => {
+    const newCriterion: ScoringCriteria = {
+      id: `${question.id}-${Date.now()}`,
+      points: 0,
+      description: "New criterion",
+    }
+    const updatedCriteria = [...question.criteria, newCriterion]
+    onUpdateQuestion({ ...question, criteria: updatedCriteria })
+  }
+
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow duration-200">
       <div className="space-y-4">
@@ -45,9 +89,12 @@ function QuestionCard({ question }: { question: RubricQuestion }) {
                 Question {question.questionNumber}
               </span>
             </div>
-            <h3 className="text-lg font-semibold text-foreground leading-snug">
-              {question.summary}
-            </h3>
+            <Textarea
+              value={question.summary}
+              onChange={(e) => updateSummary(e.target.value)}
+              className="text-lg font-semibold leading-snug min-h-[60px] resize-none"
+              placeholder="Enter question summary..."
+            />
           </div>
           <div className="ml-4 text-right">
             <div className="text-2xl font-bold text-indigo-700">
@@ -59,21 +106,48 @@ function QuestionCard({ question }: { question: RubricQuestion }) {
 
         {/* Scoring Criteria */}
         <div className="pt-4 border-t border-border">
-          <h4 className="text-sm font-semibold text-foreground mb-3">
-            Scoring Criteria
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-foreground">
+              Scoring Criteria
+            </h4>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={addCriterion}
+              className="h-7 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Criterion
+            </Button>
+          </div>
           <div className="flex flex-col gap-2">
-            {question.criteria.map((criterion, index) => (
+            {question.criteria.map((criterion) => (
               <div
                 key={criterion.id}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-200"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-200 group"
               >
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex-shrink-0">
-                  {criterion.points}
-                </div>
-                <span className="text-sm text-foreground font-medium">
-                  {criterion.description}
-                </span>
+                <Input
+                  type="number"
+                  value={criterion.points === 0 ? "" : criterion.points}
+                  onChange={(e) => updateCriterion(criterion.id, "points", e.target.value)}
+                  className="w-14 h-6 text-center rounded-full bg-indigo-600 text-white text-xs font-bold border-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  min="0"
+                  placeholder="0"
+                />
+                <Input
+                  value={criterion.description}
+                  onChange={(e) => updateCriterion(criterion.id, "description", e.target.value)}
+                  className="flex-1 h-6 text-sm font-medium border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  placeholder="Criterion description..."
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => deleteCriterion(criterion.id)}
+                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3 text-red-600" />
+                </Button>
               </div>
             ))}
           </div>
@@ -88,6 +162,21 @@ export default function RubricBreakdownPage({
   onBack,
   onConfirm,
 }: RubricBreakdownPageProps) {
+  const [editableData, setEditableData] = useState<RubricBreakdown>(rubricData)
+
+  const updateQuestion = (questionId: string, updatedQuestion: RubricQuestion) => {
+    setEditableData({
+      ...editableData,
+      questions: editableData.questions.map((q) =>
+        q.id === questionId ? updatedQuestion : q
+      ),
+    })
+  }
+
+  const handleConfirm = () => {
+    onConfirm(editableData)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -108,7 +197,7 @@ export default function RubricBreakdownPage({
                 Rubric Breakdown
               </h1>
               <p className="text-muted-foreground">
-                {rubricData.assignmentName}
+                {editableData.assignmentName}
               </p>
             </div>
             <div className="text-right space-y-3">
@@ -117,7 +206,7 @@ export default function RubricBreakdownPage({
                   Total Questions
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {rubricData.questions.length}
+                  {editableData.questions.length}
                 </div>
               </div>
               <div>
@@ -125,7 +214,7 @@ export default function RubricBreakdownPage({
                   Total Points
                 </div>
                 <div className="text-2xl font-bold text-indigo-700">
-                  {rubricData.questions.reduce((sum, q) => sum + q.totalPoints, 0)}
+                  {editableData.questions.reduce((sum, q) => sum + q.totalPoints, 0)}
                 </div>
               </div>
             </div>
@@ -138,11 +227,11 @@ export default function RubricBreakdownPage({
             <CheckCircle2 className="h-5 w-5 text-indigo-700 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-indigo-900">
-                Review the rubric breakdown below
+                Review and edit the rubric breakdown below
               </p>
               <p className="text-sm text-indigo-700 mt-1">
                 Our AI has analyzed your rubric and broken it down into individual questions with their scoring criteria.
-                Please review and confirm if everything looks correct.
+                You can edit question summaries, modify criteria descriptions and points, or add/remove criteria as needed.
               </p>
             </div>
           </div>
@@ -150,17 +239,21 @@ export default function RubricBreakdownPage({
 
         {/* Questions Grid */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          {rubricData.questions.map((question) => (
-            <QuestionCard key={question.id} question={question} />
+          {editableData.questions.map((question) => (
+            <QuestionCard
+              key={question.id}
+              question={question}
+              onUpdateQuestion={(updated) => updateQuestion(question.id, updated)}
+            />
           ))}
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-6 border-t border-border">
           <Button variant="outline" onClick={onBack}>
-            Make Changes
+            Back to Assignment
           </Button>
-          <Button size="lg" onClick={onConfirm} className="min-w-[160px]">
+          <Button size="lg" onClick={handleConfirm} className="min-w-[160px]">
             Confirm & Continue
           </Button>
         </div>
