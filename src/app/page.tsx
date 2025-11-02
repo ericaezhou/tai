@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { AssignmentsOverview } from "@/components/assignments-overview"
 import CreateAssignment from "@/components/create-assignment"
-import { AssignmentDetail } from "@/components/assignment-detail"
 import { StudentOverview } from "@/components/student-overview"
 import { StudentAssignmentDetail } from "@/components/student-assignment-detail"
 import { StudentQuestionDetail } from "@/components/student-question-detail"
@@ -50,8 +49,7 @@ export type Question = {
 
 export default function Page() {
   const [mode, setMode] = useState<"ta" | "student">("ta")
-  const [view, setView] = useState<"overview" | "create" | "detail">("overview")
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [view, setView] = useState<"overview" | "create">("overview")
   const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: "1",
@@ -219,11 +217,6 @@ export default function Page() {
     setView("overview")
   }
 
-  const handleSelectAssignment = (assignment: Assignment) => {
-    setSelectedAssignment(assignment)
-    setView("detail")
-  }
-
   const handleSelectStudentAssignment = (assignment: StudentAssignment) => {
     setSelectedStudentAssignment(assignment)
     setStudentView("assignment")
@@ -262,16 +255,12 @@ export default function Page() {
               <AssignmentsOverview
                 assignments={assignments}
                 onCreateNew={() => setView("create")}
-                onSelectAssignment={handleSelectAssignment}
                 mode={mode}
                 onToggleMode={toggleMode}
               />
             )}
             {view === "create" && (
               <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
-            )}
-            {view === "detail" && selectedAssignment && (
-              <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
             )}
           </div>
         </div>
