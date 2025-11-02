@@ -10,6 +10,8 @@ import type { Assignment } from "@/app/page"
 type AssignmentsOverviewProps = {
   assignments: Assignment[]
   onCreateNew: () => void
+  onSelectAssignment: (assignment: Assignment) => void
+  onViewRubric?: (assignment: Assignment) => void
   mode: "ta" | "student"
   onToggleMode: () => void
 }
@@ -17,6 +19,8 @@ type AssignmentsOverviewProps = {
 export function AssignmentsOverview({
   assignments,
   onCreateNew,
+  onSelectAssignment,
+  onViewRubric,
   mode,
   onToggleMode,
 }: AssignmentsOverviewProps) {
@@ -64,23 +68,32 @@ export function AssignmentsOverview({
               </TableHeader>
               <TableBody>
                 {assignments.map((assignment) => (
-                  <TableRow key={assignment.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow key={assignment.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">
-                      <Link href={`/assignment/${assignment.id}`} className="block">
-                        {assignment.name}
-                      </Link>
+                      {assignment.name}
                     </TableCell>
                     <TableCell>
-                      <Link href={`/assignment/${assignment.id}`} className="block">
-                        {new Date(assignment.dueDate).toLocaleDateString()}
-                      </Link>
+                      {new Date(assignment.dueDate).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/assignment/${assignment.id}`}>
-                        <Button variant="ghost" size="sm">
+                      <div className="flex items-center justify-end gap-2">
+                        {assignment.rubricBreakdown && onViewRubric && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onViewRubric(assignment)}
+                          >
+                            View Rubric
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onSelectAssignment(assignment)}
+                        >
                           View Details
                         </Button>
-                      </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

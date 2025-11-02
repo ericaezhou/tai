@@ -25,6 +25,7 @@ export type Assignment = {
   name: string
   dueDate: string
   rubric?: string
+  rubricBreakdown?: RubricBreakdown
   students?: StudentScore[]
 }
 
@@ -63,6 +64,7 @@ export default function Page() {
   const [view, setView] = useState<"overview" | "create" | "rubric" | "detail">("overview")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [rubricData, setRubricData] = useState<RubricBreakdown | null>(null)
+  const [pendingAssignment, setPendingAssignment] = useState<Assignment | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: "1",
@@ -129,6 +131,9 @@ export default function Page() {
     console.log("[Page] handleCreateAssignment called")
     console.log("[Page] Assignment:", assignment)
     console.log("[Page] Rubric file:", rubricFile ? rubricFile.name : "No file")
+
+    // Store the pending assignment
+    setPendingAssignment(assignment)
 
     // Show rubric view with loading state
     console.log("[Page] Setting view to 'rubric'")
@@ -216,20 +221,59 @@ export default function Page() {
       } else {
         console.error("[Page] Failed to parse rubric:", result.error)
         alert(`Failed to parse rubric: ${result.error}`)
+        setPendingAssignment(null)
         setView("create")
       }
     } catch (error) {
       console.error("[Page] Error calling parseRubricPDF:", error)
       alert("An error occurred while parsing the rubric. Please try again.")
+      setPendingAssignment(null)
       setView("create")
     }
   }
 
   const handleConfirmRubric = (updatedRubricData: RubricBreakdown) => {
-    // Here you would save the assignment with the confirmed rubric
-    // The updatedRubricData contains all the edits made by the TA
-    setRubricData(updatedRubricData)
+    console.log("[Page] handleConfirmRubric called")
+    console.log("[Page] Updated rubric data:", updatedRubricData)
+    console.log("[Page] Pending assignment:", pendingAssignment)
+
+    if (!pendingAssignment) {
+      // We're viewing an existing rubric, just update it in the assignments list
+      console.log("[Page] No pending assignment - updating existing assignment")
+      if (selectedAssignment) {
+        setAssignments((prev) =>
+          prev.map((a) =>
+            a.id === selectedAssignment.id
+              ? { ...a, rubricBreakdown: updatedRubricData }
+              : a
+          )
+        )
+        console.log("[Page] Updated existing assignment rubric")
+      }
+      // Don't clear rubricData here - it will be cleared when we navigate away
+      setView("overview")
+      return
+    }
+
+    // Create the complete assignment with rubric data
+    const completeAssignment: Assignment = {
+      ...pendingAssignment,
+      rubricBreakdown: updatedRubricData,
+      students: [], // Start with no students
+    }
+
+    console.log("[Page] Creating complete assignment:", completeAssignment)
+
+    // Add to assignments list
+    setAssignments((prev) => [...prev, completeAssignment])
+    console.log("[Page] Assignment added to list")
+
+    // Clear pending assignment
+    setPendingAssignment(null)
+
+    // Return to overview
     setView("overview")
+    console.log("[Page] Returned to overview")
   }
 
   const handleSelectStudentAssignment = (assignment: DbStudentAssignment) => {
@@ -318,6 +362,11 @@ export default function Page() {
                   setSelectedAssignment(assignment)
                   setView("detail")
                 }}
+                onViewRubric={(assignment) => {
+                  setSelectedAssignment(assignment)
+                  setRubricData(assignment.rubricBreakdown || null)
+                  setView("rubric")
+                }}
                 mode={mode}
                 onToggleMode={toggleMode}
               />
@@ -328,7 +377,11 @@ export default function Page() {
             {view === "rubric" && (
               <RubricBreakdownPage
                 rubricData={rubricData}
-                onBack={() => setView("create")}
+                onBack={() => {
+                  // If we have a pending assignment, we're in creation mode - go back to create
+                  // Otherwise, we're viewing an existing rubric - go back to overview
+                  setView(pendingAssignment ? "create" : "overview")
+                }}
                 onConfirm={handleConfirmRubric}
               />
             )}

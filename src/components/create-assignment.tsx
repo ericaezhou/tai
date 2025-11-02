@@ -23,6 +23,13 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
   const [specialInstructions, setSpecialInstructions] = useState("")
   const [startDate, setStartDate] = useState("")
   const [dueDate, setDueDate] = useState("")
+  const [errors, setErrors] = useState<{
+    assignmentName?: string
+    questionFile?: string
+    rubricFile?: string
+    startDate?: string
+    dueDate?: string
+  }>({})
 
   const handleQuestionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -40,6 +47,39 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
     console.log("[CreateAssignment] handleNext called")
     console.log("[CreateAssignment] Assignment name:", assignmentName)
     console.log("[CreateAssignment] Rubric file:", rubricFile ? rubricFile.name : "No file")
+
+    // Validate required fields
+    const newErrors: typeof errors = {}
+
+    if (!assignmentName.trim()) {
+      newErrors.assignmentName = "Assignment name is required"
+    }
+
+    if (!questionFile) {
+      newErrors.questionFile = "Question PDF is required"
+    }
+
+    if (!rubricFile) {
+      newErrors.rubricFile = "Rubric PDF is required"
+    }
+
+    if (!startDate) {
+      newErrors.startDate = "Start date is required"
+    }
+
+    if (!dueDate) {
+      newErrors.dueDate = "Due date is required"
+    }
+
+    // Check if there are any errors
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      console.log("[CreateAssignment] Validation failed:", newErrors)
+      return
+    }
+
+    // Clear any previous errors
+    setErrors({})
 
     // In production, this would upload files to backend and get rubric analysis
     const newAssignment: Assignment = {
@@ -73,24 +113,31 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
             {/* Assignment Name */}
             <div>
               <Label htmlFor="assignment-name" className="text-sm font-semibold">
-                Assignment Name
+                Assignment Name <span className="text-red-600">*</span>
               </Label>
               <Input
                 id="assignment-name"
                 placeholder="Enter assignment name"
-                className="mt-2"
+                className={`mt-2 ${errors.assignmentName ? "border-red-600" : ""}`}
                 value={assignmentName}
                 onChange={(e) => setAssignmentName(e.target.value)}
               />
+              {errors.assignmentName && (
+                <p className="text-sm text-red-600 mt-1">{errors.assignmentName}</p>
+              )}
             </div>
 
             {/* Question Section */}
             <div>
-              <Label className="text-sm font-semibold">Question</Label>
+              <Label className="text-sm font-semibold">
+                Question <span className="text-red-600">*</span>
+              </Label>
               <div className="mt-2">
                 <label
                   htmlFor="question-upload"
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
+                  className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed ${
+                    errors.questionFile ? "border-red-600" : "border-border"
+                  } bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50`}
                 >
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
@@ -104,16 +151,23 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
                     onChange={handleQuestionUpload}
                   />
                 </label>
+                {errors.questionFile && (
+                  <p className="text-sm text-red-600 mt-1">{errors.questionFile}</p>
+                )}
               </div>
             </div>
 
             {/* Rubric Section */}
             <div>
-              <Label className="text-sm font-semibold">Rubric</Label>
+              <Label className="text-sm font-semibold">
+                Rubric <span className="text-red-600">*</span>
+              </Label>
               <div className="mt-2">
                 <label
                   htmlFor="rubric-upload"
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
+                  className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed ${
+                    errors.rubricFile ? "border-red-600" : "border-border"
+                  } bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50`}
                 >
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
@@ -127,6 +181,9 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
                     onChange={handleRubricUpload}
                   />
                 </label>
+                {errors.rubricFile && (
+                  <p className="text-sm text-red-600 mt-1">{errors.rubricFile}</p>
+                )}
               </div>
             </div>
 
@@ -148,28 +205,34 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <Label htmlFor="start-date" className="text-sm font-semibold">
-                  Start Date
+                  Start Date <span className="text-red-600">*</span>
                 </Label>
                 <Input
                   id="start-date"
                   type="date"
-                  className="mt-2"
+                  className={`mt-2 ${errors.startDate ? "border-red-600" : ""}`}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
+                {errors.startDate && (
+                  <p className="text-sm text-red-600 mt-1">{errors.startDate}</p>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="due-date" className="text-sm font-semibold">
-                  Due Date
+                  Due Date <span className="text-red-600">*</span>
                 </Label>
                 <Input
                   id="due-date"
                   type="date"
-                  className="mt-2"
+                  className={`mt-2 ${errors.dueDate ? "border-red-600" : ""}`}
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
+                {errors.dueDate && (
+                  <p className="text-sm text-red-600 mt-1">{errors.dueDate}</p>
+                )}
               </div>
             </div>
 
