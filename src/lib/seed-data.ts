@@ -160,7 +160,7 @@ export async function seedDatabase(): Promise<void> {
       courseId: course1.id,
       name: 'Midterm Exam',
       description: 'Cumulative exam covering probability theory foundations and random variables',
-      dueDate: new Date('2025-11-08'),
+      dueDate: new Date('2025-10-20'), // Past due date
       totalPoints: 100,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -630,14 +630,54 @@ export async function seedDatabase(): Promise<void> {
       id: 'sub_2',
       assignmentId: assignment2.id,
       studentId: student1.id,
-      status: 'ungraded',
+      status: 'graded',
+      score: 69, // 92% - good performance on random variables
       structuredAnswer: [],
       submittedAt: new Date('2025-10-14'),
-      published: false, // Not yet graded, so not published
+      published: true, // Published grades are visible to students
       createdAt: new Date('2025-10-14'),
-      updatedAt: new Date('2025-10-14')
+      updatedAt: new Date('2025-10-16')
     };
     await db.saveStudentSubmission(submission2);
+
+    // Create question submissions for Assignment 2 (HW2 - Random Variables)
+    // Total: 23 + 28 + 18 = 69 out of 75 points
+    const questionSubmissions2 = [
+      {
+        id: 'qs_hw2_1',
+        submissionId: submission2.id,
+        questionId: '4', // PMF Derivation (25 points)
+        pointsAwarded: 23,
+        submissionContent: 'Derived PMF for discrete random variables',
+        feedback: 'Excellent work on PMF derivation. Minor error in one normalization constant calculation.',
+        createdAt: new Date('2025-10-16'),
+        updatedAt: new Date('2025-10-16')
+      },
+      {
+        id: 'qs_hw2_2',
+        submissionId: submission2.id,
+        questionId: '5', // Expected Value & Variance (30 points)
+        pointsAwarded: 28,
+        submissionContent: 'Computed expected values and variances for random variables',
+        feedback: 'Strong understanding of expected value and variance. Good application of formulas.',
+        createdAt: new Date('2025-10-16'),
+        updatedAt: new Date('2025-10-16')
+      },
+      {
+        id: 'qs_hw2_3',
+        submissionId: submission2.id,
+        questionId: '6', // Probability Distributions (20 points)
+        pointsAwarded: 18,
+        submissionContent: 'Applied binomial and geometric distributions to problems',
+        feedback: 'Good application of common distributions. Needs more practice with Poisson distribution identification.',
+        createdAt: new Date('2025-10-16'),
+        updatedAt: new Date('2025-10-16')
+      }
+    ];
+
+    for (const qs of questionSubmissions2) {
+      await db.saveQuestionSubmission(qs);
+    }
 
     // Assignment 3 (Midterm) - Graded for student1
     // Total: 18 + 23 + 28 + 23 = 92 out of 100
@@ -648,10 +688,10 @@ export async function seedDatabase(): Promise<void> {
       status: 'graded',
       score: 92, // 18 + 23 + 28 + 23 = 92 out of 100
       structuredAnswer: [],
-      submittedAt: new Date('2025-11-07'),
+      submittedAt: new Date('2025-10-19'),
       published: true, // Published grades are visible to students
-      createdAt: new Date('2025-11-07'),
-      updatedAt: new Date('2025-11-08')
+      createdAt: new Date('2025-10-19'),
+      updatedAt: new Date('2025-10-20')
     };
     await db.saveStudentSubmission(submission3);
 
@@ -891,10 +931,10 @@ export async function seedDatabase(): Promise<void> {
       status: 'graded',
       score: 87,
       structuredAnswer: [],
-      submittedAt: new Date('2025-11-07'),
+      submittedAt: new Date('2025-10-19'),
       published: true,
-      createdAt: new Date('2025-11-07'),
-      updatedAt: new Date('2025-11-08')
+      createdAt: new Date('2025-10-19'),
+      updatedAt: new Date('2025-10-20')
     };
     await db.saveStudentSubmission(submission_alice_midterm);
 
@@ -906,10 +946,10 @@ export async function seedDatabase(): Promise<void> {
       status: 'graded',
       score: 75,
       structuredAnswer: [],
-      submittedAt: new Date('2025-11-07'),
+      submittedAt: new Date('2025-10-19'),
       published: true,
-      createdAt: new Date('2025-11-07'),
-      updatedAt: new Date('2025-11-08')
+      createdAt: new Date('2025-10-19'),
+      updatedAt: new Date('2025-10-20')
     };
     await db.saveStudentSubmission(submission_bob_midterm);
 
@@ -921,10 +961,10 @@ export async function seedDatabase(): Promise<void> {
       status: 'graded',
       score: 90,
       structuredAnswer: [],
-      submittedAt: new Date('2025-11-07'),
+      submittedAt: new Date('2025-10-19'),
       published: true,
-      createdAt: new Date('2025-11-07'),
-      updatedAt: new Date('2025-11-08')
+      createdAt: new Date('2025-10-19'),
+      updatedAt: new Date('2025-10-20')
     };
     await db.saveStudentSubmission(submission_carol_midterm);
 
@@ -936,10 +976,10 @@ export async function seedDatabase(): Promise<void> {
       status: 'graded',
       score: 94,
       structuredAnswer: [],
-      submittedAt: new Date('2025-11-06'),
+      submittedAt: new Date('2025-10-18'),
       published: true,
-      createdAt: new Date('2025-11-06'),
-      updatedAt: new Date('2025-11-08')
+      createdAt: new Date('2025-10-18'),
+      updatedAt: new Date('2025-10-20')
     };
     await db.saveStudentSubmission(submission_david_midterm);
 
