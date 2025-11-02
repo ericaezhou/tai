@@ -37,3 +37,37 @@ export interface AssignmentData {
   overallInsights: string;
   questionInsights: QuestionInsights[];
 }
+
+export interface Solution {
+  id: string;
+  assignmentId: string;
+  fileName: string;
+  fileContent: string;
+  uploadedAt: Date;
+  rubricId?: string;
+}
+
+export interface RubricCriteria {
+  id: string;
+  name: string;
+  description: string;
+  maxPoints: number;
+  levels: RubricLevel[];
+}
+
+export interface RubricLevel {
+  id: string;
+  name: string;
+  description: string;
+  points: number;
+}
+
+export interface Rubric {
+  id: string;
+  solutionId: string;
+  title: string;
+  description: string;
+  criteria: RubricCriteria[];
+  totalPoints: number;
+  generatedAt: Date;
+}
