@@ -602,8 +602,11 @@ export async function getStudentPerformanceForAssignment(assignmentId: string, c
     const studentPerformances: StudentPerformance[] = [];
 
     for (const enrollment of allEnrollments) {
-      const student = await db.getStudent(enrollment.studentId);
-      if (!student) continue;
+      const student = await db.getStudent((enrollment as any).studentId);
+      if (!student) {
+        console.warn(`Student ${(enrollment as any).studentId} not found in database`);
+        continue;
+      }
 
       const submission = submissions.find(s => s.studentId === student.id);
 

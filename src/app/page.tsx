@@ -455,6 +455,7 @@ export default function Page() {
               .map(s => ({
                 id: s.id,
                 name: s.name,
+                email: s.email,
                 score: s.score!
               }))
 
