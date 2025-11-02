@@ -58,6 +58,52 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
   const failingCount = scores.filter((s) => s < 60).length
   const lowAverage = average < 70
 
+  // Custom insights for prefilled assignments
+  const getAssignmentInsights = (assignmentId: string, assignmentName: string) => {
+    const insights: Record<string, string> = {
+      '1': 'Students demonstrated strong understanding of fundamental probability concepts. The class particularly excelled in conditional probability problems, though some struggled with correctly applying Bayes theorem in multi-step scenarios. Consider providing additional practice problems for theorem applications.',
+      '2': 'Overall solid performance on random variables. Most students correctly calculated expected values and variances, but there were common mistakes in identifying appropriate probability distributions for real-world scenarios. The concept of independence needs reinforcement.',
+      '3': 'The midterm showed good comprehension of core probability theory. Students who performed well on homework assignments generally maintained their performance. Areas of difficulty included synthesizing multiple concepts in complex problems and time management during the exam.',
+      '4': 'Students showed competency in implementing basic data structures. Common issues included edge case handling in linked list operations and off-by-one errors in array manipulations. Code quality and documentation were generally good.',
+      '5': 'Advanced algorithm implementation revealed varied levels of understanding. Top performers demonstrated excellent problem-solving approaches, while others struggled with optimizing time complexity. More emphasis on algorithm analysis may be beneficial.'
+    }
+
+    // Return custom insight if available, otherwise generate dynamic insight
+    if (insights[assignmentId]) {
+      return insights[assignmentId]
+    }
+
+    // Dynamic insights based on performance metrics
+    if (scores.length === 0) {
+      return 'No submissions have been graded yet. Once grading is complete, performance insights will be available here.'
+    }
+
+    const highScorers = scores.filter(s => s >= 90).length
+    const passingRate = ((scores.filter(s => s >= 60).length / scores.length) * 100).toFixed(0)
+
+    let insight = `This assignment has ${students.length} graded submission${students.length !== 1 ? 's' : ''} with a ${passingRate}% passing rate. `
+
+    if (average >= 85) {
+      insight += `The class demonstrated excellent mastery of the material, with ${highScorers} student${highScorers !== 1 ? 's' : ''} achieving 90% or higher. `
+    } else if (average >= 75) {
+      insight += `Most students showed solid understanding of the core concepts. `
+    } else if (average >= 65) {
+      insight += `Performance indicates that students grasped the basics but struggled with more challenging aspects. `
+    } else {
+      insight += `The results suggest this material was particularly challenging for the class. `
+    }
+
+    if (failingCount > scores.length * 0.3) {
+      insight += `With ${failingCount} student${failingCount !== 1 ? 's' : ''} scoring below 60%, consider scheduling review sessions or office hours to address common difficulties.`
+    } else if (average < 75) {
+      insight += 'Consider reviewing the most commonly missed problems in class to clarify misconceptions.'
+    } else {
+      insight += 'Continue with similar pacing and difficulty level for future assignments.'
+    }
+
+    return insight
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
@@ -149,16 +195,12 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
 
         <Card>
           <CardHeader>
-            <CardTitle>Assignment Summary</CardTitle>
-            <CardDescription>Key insights and potential issues</CardDescription>
+            <CardTitle>Insights</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2">Statistics</h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                This assignment has {students.length} submissions with an average score of {average.toFixed(1)}. The
-                scores range from {min} to {max}, with a median of {median}. The standard deviation indicates{" "}
-                {average > 80 ? "strong overall performance" : "moderate performance variation"}.
+                {getAssignmentInsights(assignment.id, assignment.name)}
               </p>
             </div>
 
