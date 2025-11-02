@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import { mockAssignmentData } from "@/lib/mockData";
 import { sharedAssignments } from "@/lib/assignments";
 import Sidebar from "@/components/Sidebar";
@@ -9,12 +9,13 @@ import InsightsPanel from "@/components/InsightsPanel";
 import SubmissionsTable from "@/components/SubmissionsTable";
 
 interface AssignmentPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function AssignmentPage({ params }: AssignmentPageProps) {
+  const { id } = use(params);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
 
   const { title, questions, submissions, overallInsights, questionInsights } =
@@ -37,7 +38,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
   };
 
   // Get assignment name based on ID
-  const assignmentName = sharedAssignments.find((a) => a.id === params.id)?.name || "Assignment";
+  const assignmentName = sharedAssignments.find((a) => a.id === id)?.name || "Assignment";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -45,7 +46,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
       <Sidebar
         courseName="CS 101: Data Structures"
         assignments={sharedAssignments}
-        currentAssignmentId={params.id}
+        currentAssignmentId={id}
       />
 
       {/* Main Content Area */}

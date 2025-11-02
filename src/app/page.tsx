@@ -4,6 +4,7 @@ import { useState } from "react"
 import { AssignmentsOverview } from "@/components/assignments-overview"
 import { CreateAssignment } from "@/components/create-assignment"
 import { sharedAssignments } from "@/lib/assignments"
+import Sidebar from "@/components/Sidebar"
 
 export type Assignment = {
   id: string
@@ -33,14 +34,20 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {view === "overview" && (
-        <AssignmentsOverview
-          assignments={assignments}
-          onCreateNew={() => setView("create")}
-        />
-      )}
-      {view === "create" && <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />}
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar
+        courseName="CS 101: Data Structures"
+        assignments={sharedAssignments}
+      />
+      <div className="flex-1 overflow-auto">
+        {view === "overview" && (
+          <AssignmentsOverview
+            assignments={assignments}
+            onCreateNew={() => setView("create")}
+          />
+        )}
+        {view === "create" && <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />}
+      </div>
     </div>
   )
 }
