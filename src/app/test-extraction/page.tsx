@@ -43,11 +43,26 @@ export default function TestExtractionPage() {
         if (data.status === "completed") {
           return data.data;
         } else if (data.status === "failed") {
-          // Include full error details if available
-          const errorMessage = data.details
-            ? `${data.error}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`
-            : data.error || "Job failed";
-          console.error("Extraction job failed:", data);
+          // Log full error data to console for debugging
+          console.error("=== EXTRACTION JOB FAILED (Frontend) ===");
+          console.error("Full error data:", data);
+          console.error("Status Response:", data.statusResponse);
+          console.error("Result Details:", data.resultDetails);
+          console.error("=== END FRONTEND ERROR LOG ===");
+
+          // Build comprehensive error message
+          let errorMessage = data.error || "Job failed";
+
+          // Add status response if available
+          if (data.statusResponse) {
+            errorMessage += `\n\nStatus Response:\n${JSON.stringify(data.statusResponse, null, 2)}`;
+          }
+
+          // Add result details if available
+          if (data.resultDetails) {
+            errorMessage += `\n\nResult Details:\n${JSON.stringify(data.resultDetails, null, 2)}`;
+          }
+
           throw new Error(errorMessage);
         }
 

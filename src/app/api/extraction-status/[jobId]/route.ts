@@ -89,26 +89,42 @@ export async function GET(
           data: result,
         });
       } else if (statusResponse.status === "FAILED") {
-        // Try to get error details from job result
+        // Log the full status response to see what Unsiloed returns
+        console.error("=== EXTRACTION JOB FAILED ===");
+        console.error("Job ID:", jobId);
+        console.error("Full status response:", JSON.stringify(statusResponse, null, 2));
+
+        // Try to get additional error details from job result
+        let errorDetails = null;
         try {
-          const errorDetails = await getJobResult(jobId);
-          console.error("Extraction job failed. Job details:", JSON.stringify(errorDetails, null, 2));
-          return NextResponse.json({
-            status: "failed",
-            jobId,
-            error: "Extraction job failed",
-            details: errorDetails,
-            rawStatus: statusResponse,
-          });
+          errorDetails = await getJobResult(jobId);
+          console.error("Job result for failed job:", JSON.stringify(errorDetails, null, 2));
         } catch (resultError) {
-          console.error("Failed to fetch job result for failed job:", resultError);
-          return NextResponse.json({
-            status: "failed",
-            jobId,
-            error: "Extraction job failed",
-            details: statusResponse,
-          });
+          console.error("Could not fetch job result (this is normal for failed jobs):",
+            resultError instanceof Error ? resultError.message : String(resultError)
+          );
         }
+
+        // Extract error message from various possible fields
+        const errorMessage =
+          (statusResponse as any).error_message ||
+          (statusResponse as any).message ||
+          (statusResponse as any).error ||
+          errorDetails?.error ||
+          errorDetails?.message ||
+          errorDetails?.error_message ||
+          "Extraction failed with no error details from Unsiloed API";
+
+        console.error("Extracted error message:", errorMessage);
+        console.error("=== END ERROR LOG ===");
+
+        return NextResponse.json({
+          status: "failed",
+          jobId,
+          error: errorMessage,
+          statusResponse: statusResponse,  // Include full status for debugging
+          resultDetails: errorDetails,     // Include result if available
+        });
       } else {
         return NextResponse.json({
           status: "processing",
