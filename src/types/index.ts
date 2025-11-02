@@ -157,3 +157,82 @@ export interface CourseEnrollment {
   studentId: string;
   enrolledAt: Date;
 }
+
+// Unsiloed AI Types
+
+export interface BoundingBox {
+  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
+}
+
+export interface UnsiloedFieldExtraction {
+  value: string | number | boolean | null;
+  score: number; // Confidence score (0-1)
+  bboxes: BoundingBox[];
+  page_no: number;
+}
+
+export interface ParseSegment {
+  segment_type: string;
+  content: string;
+  page_number: number;
+  confidence: number;
+  bbox: [number, number, number, number];
+  html?: string;
+  markdown?: string;
+  ocr?: any;
+}
+
+export interface ParseChunk {
+  segments: ParseSegment[];
+}
+
+export interface ParsedDocument {
+  job_id: string;
+  status: "Starting" | "Processing" | "Succeeded" | "Failed";
+  created_at?: string;
+  started_at?: string;
+  finished_at?: string;
+  total_chunks?: number;
+  chunks?: ParseChunk[];
+}
+
+export interface ExtractedData {
+  [key: string]: UnsiloedFieldExtraction;
+  min_confidence_score?: number;
+}
+
+export interface ExtractedAnswerKey {
+  correct_answers: UnsiloedFieldExtraction;
+  problem_statements: UnsiloedFieldExtraction;
+  rubric_criteria: UnsiloedFieldExtraction;
+  point_values: UnsiloedFieldExtraction;
+}
+
+export interface ExtractedSubmission {
+  student_name?: UnsiloedFieldExtraction;
+  student_id?: UnsiloedFieldExtraction;
+  [key: string]: UnsiloedFieldExtraction | undefined; // Dynamic question answers (q1_answer, q2_answer, etc.)
+}
+
+export interface UnsiloedJobStatus {
+  job_id: string;
+  status: "queued" | "PROCESSING" | "COMPLETED" | "FAILED";
+  type?: string;
+  created_at?: string;
+}
+
+export interface UnsiloedJobResult {
+  data?: ExtractedData;
+  results?: {
+    tables?: any[];
+  };
+}
+
+export interface PdfExtractionResult {
+  jobId: string;
+  status: string;
+  extractedData?: ExtractedData;
+  parsedDocument?: ParsedDocument;
+  confidence: number;
+  error?: string;
+}
