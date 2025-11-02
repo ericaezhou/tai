@@ -43,6 +43,13 @@ export default function OCRTestPage() {
       free: true
     },
     {
+      id: 'mathpix',
+      name: 'Mathpix',
+      description: 'Commercial OCR with premium math support',
+      port: null,
+      free: false
+    },
+    {
       id: 'unsiloed',
       name: 'Unsiloed AI',
       description: 'Current production (85-95% accuracy)',

@@ -7,7 +7,7 @@ export interface BoundingBox {
 }
 
 export interface OCREngine {
-  name: 'paddleocr' | 'pix2text' | 'surya' | 'easyocr' | 'trocr' | 'unsiloed';
+  name: 'paddleocr' | 'pix2text' | 'surya' | 'mathpix' | 'easyocr' | 'trocr' | 'unsiloed';
   endpoint: string;
   timeout: number;
   supportsHandwriting: boolean;
@@ -36,6 +36,7 @@ export interface OCRResult {
     segmentIndex?: number;
     modelVersion?: string;
     language?: string;
+    questionNumber?: number;
     boundingBox?: {
       x: number;
       y: number;
@@ -154,6 +155,11 @@ export interface OCREngineConfig {
   surya?: {
     endpoint: string;
     languages: string[];
+  };
+  mathpix?: {
+    appId: string;
+    appKey: string;
+    endpoint?: string;
   };
   unsiloed?: {
     apiKey: string;

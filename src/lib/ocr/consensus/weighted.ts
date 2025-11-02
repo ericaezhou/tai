@@ -12,6 +12,7 @@ const ENGINE_WEIGHTS: Record<string, number> = {
   paddleocr: 1.0,
   pix2text: 1.2,    // Higher weight for math-specialized engine
   surya: 1.0,
+  mathpix: 1.4,
   easyocr: 0.8,
   trocr: 0.9,
   unsiloed: 1.5     // Highest weight for proven accuracy

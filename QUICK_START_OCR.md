@@ -62,6 +62,19 @@ ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 
 If you skip this, you won't be able to use the AI Arbiter consensus method.
 
+### Step 3.1: Configure Mathpix (Optional, Paid)
+
+Add your Mathpix credentials if you want to evaluate the commercial engine:
+
+```bash
+MATHPIX_APP_ID=your_app_id
+MATHPIX_APP_KEY=your_app_key
+# Optional override:
+# MATHPIX_ENDPOINT=https://api.mathpix.com/v3/text
+```
+
+The key is only read on the server—do not prefix with `NEXT_PUBLIC_`. Without credentials, the Mathpix engine will be skipped.
+
 ### Step 4: Start Next.js Dev Server
 
 ```bash
