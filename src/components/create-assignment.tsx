@@ -8,9 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { Upload } from "lucide-react"
+import { Upload, ArrowLeft } from "lucide-react"
+import type { Assignment } from "@/app/page"
 
-export default function CreateAssignmentPage() {
+interface CreateAssignmentPageProps {
+  onBack: () => void
+  onCreate: (assignment: Assignment) => void
+}
+
+export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignmentPageProps) {
   const [questionFile, setQuestionFile] = useState<File | null>(null)
   const [rubricFile, setRubricFile] = useState<File | null>(null)
 
@@ -30,6 +36,15 @@ export default function CreateAssignmentPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <Card className="p-6 sm:p-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="mb-2 -ml-2 h-8"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
           <h1 className="mb-8 text-3xl font-bold text-foreground">Create Assignment</h1>
 
           <div className="space-y-6">
