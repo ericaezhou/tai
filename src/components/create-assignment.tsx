@@ -13,7 +13,7 @@ import type { Assignment } from "@/app/page"
 
 interface CreateAssignmentPageProps {
   onBack: () => void
-  onCreate: (assignment: Assignment) => void
+  onCreate: (assignment: Assignment, rubricFile: File | null) => void
 }
 
 export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignmentPageProps) {
@@ -37,6 +37,10 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
   }
 
   const handleNext = () => {
+    console.log("[CreateAssignment] handleNext called")
+    console.log("[CreateAssignment] Assignment name:", assignmentName)
+    console.log("[CreateAssignment] Rubric file:", rubricFile ? rubricFile.name : "No file")
+
     // In production, this would upload files to backend and get rubric analysis
     const newAssignment: Assignment = {
       id: Date.now().toString(),
@@ -44,7 +48,10 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
       dueDate: dueDate,
       students: [],
     }
-    onCreate(newAssignment)
+
+    console.log("[CreateAssignment] Calling onCreate with assignment:", newAssignment)
+    onCreate(newAssignment, rubricFile)
+    console.log("[CreateAssignment] onCreate called successfully")
   }
 
   return (

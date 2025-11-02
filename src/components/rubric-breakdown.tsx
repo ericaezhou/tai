@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,7 @@ export type RubricBreakdown = {
 }
 
 interface RubricBreakdownPageProps {
-  rubricData: RubricBreakdown
+  rubricData: RubricBreakdown | null
   onBack: () => void
   onConfirm: (updatedData: RubricBreakdown) => void
 }
@@ -162,9 +162,20 @@ export default function RubricBreakdownPage({
   onBack,
   onConfirm,
 }: RubricBreakdownPageProps) {
-  const [editableData, setEditableData] = useState<RubricBreakdown>(rubricData)
+  console.log("[RubricBreakdown] Component rendered")
+  console.log("[RubricBreakdown] rubricData prop:", rubricData)
+
+  const [editableData, setEditableData] = useState<RubricBreakdown | null>(rubricData)
+  console.log("[RubricBreakdown] editableData state:", editableData)
+
+  // Sync editableData with rubricData prop when it changes
+  useEffect(() => {
+    console.log("[RubricBreakdown] useEffect triggered, rubricData changed to:", rubricData)
+    setEditableData(rubricData)
+  }, [rubricData])
 
   const updateQuestion = (questionId: string, updatedQuestion: RubricQuestion) => {
+    if (!editableData) return
     setEditableData({
       ...editableData,
       questions: editableData.questions.map((q) =>
@@ -174,7 +185,40 @@ export default function RubricBreakdownPage({
   }
 
   const handleConfirm = () => {
-    onConfirm(editableData)
+    if (editableData) {
+      onConfirm(editableData)
+    }
+  }
+
+  // Loading state
+  if (!rubricData || !editableData) {
+    console.log("[RubricBreakdown] Showing loading state")
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="mb-4 -ml-2 h-8"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-700"></div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              Analyzing Rubric
+            </h2>
+            <p className="text-muted-foreground text-center max-w-md">
+              Our AI is carefully analyzing your rubric PDF and breaking it down into questions with scoring criteria. This may take a moment...
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

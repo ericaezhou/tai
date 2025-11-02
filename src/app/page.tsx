@@ -215,59 +215,104 @@ export default function Page() {
     },
   ])
 
-  const handleCreateAssignment = (assignment: Assignment) => {
-    // Mock rubric data - in production, this would come from backend API
-    const mockRubricData: RubricBreakdown = {
-      assignmentName: assignment.name || "New Assignment",
-      questions: [
-        {
-          id: "1",
-          questionNumber: 1,
-          summary: "Implement a binary search algorithm with proper edge case handling",
-          totalPoints: 20,
-          criteria: [
-            { id: "1-1", points: 10, description: "Correct implementation" },
-            { id: "1-2", points: 5, description: "Edge cases handled" },
-            { id: "1-3", points: 5, description: "Code quality" },
-          ],
-        },
-        {
-          id: "2",
-          questionNumber: 2,
-          summary: "Analyze time and space complexity of given algorithms",
-          totalPoints: 25,
-          criteria: [
-            { id: "2-1", points: 15, description: "Time complexity analysis" },
-            { id: "2-2", points: 10, description: "Space complexity analysis" },
-          ],
-        },
-        {
-          id: "3",
-          questionNumber: 3,
-          summary: "Design and implement a linked list data structure",
-          totalPoints: 30,
-          criteria: [
-            { id: "3-1", points: 15, description: "Core functionality" },
-            { id: "3-2", points: 10, description: "Additional operations" },
-            { id: "3-3", points: 5, description: "Documentation" },
-          ],
-        },
-        {
-          id: "4",
-          questionNumber: 4,
-          summary: "Write a recursive solution for the Tower of Hanoi problem",
-          totalPoints: 25,
-          criteria: [
-            { id: "4-1", points: 12, description: "Correct recursion" },
-            { id: "4-2", points: 8, description: "Base case handling" },
-            { id: "4-3", points: 5, description: "Optimization" },
-          ],
-        },
-      ],
+  const handleCreateAssignment = async (assignment: Assignment, rubricFile: File | null) => {
+    console.log("[Page] handleCreateAssignment called")
+    console.log("[Page] Assignment:", assignment)
+    console.log("[Page] Rubric file:", rubricFile ? rubricFile.name : "No file")
+
+    // Show rubric view with loading state
+    console.log("[Page] Setting view to 'rubric'")
+    setView("rubric")
+    console.log("[Page] Setting rubricData to null (loading state)")
+    setRubricData(null) // Clear previous data to show loading state
+
+    if (!rubricFile) {
+      console.log("[Page] No rubric file provided, using mock data")
+      // Fallback to mock data if no file provided
+      const mockRubricData: RubricBreakdown = {
+        assignmentName: assignment.name || "New Assignment",
+        questions: [
+          {
+            id: "1",
+            questionNumber: 1,
+            summary: "Implement a binary search algorithm with proper edge case handling",
+            totalPoints: 20,
+            criteria: [
+              { id: "1-1", points: 10, description: "Correct implementation" },
+              { id: "1-2", points: 5, description: "Edge cases handled" },
+              { id: "1-3", points: 5, description: "Code quality" },
+            ],
+          },
+          {
+            id: "2",
+            questionNumber: 2,
+            summary: "Analyze time and space complexity of given algorithms",
+            totalPoints: 25,
+            criteria: [
+              { id: "2-1", points: 15, description: "Time complexity analysis" },
+              { id: "2-2", points: 10, description: "Space complexity analysis" },
+            ],
+          },
+          {
+            id: "3",
+            questionNumber: 3,
+            summary: "Design and implement a linked list data structure",
+            totalPoints: 30,
+            criteria: [
+              { id: "3-1", points: 15, description: "Core functionality" },
+              { id: "3-2", points: 10, description: "Additional operations" },
+              { id: "3-3", points: 5, description: "Documentation" },
+            ],
+          },
+          {
+            id: "4",
+            questionNumber: 4,
+            summary: "Write a recursive solution for the Tower of Hanoi problem",
+            totalPoints: 25,
+            criteria: [
+              { id: "4-1", points: 12, description: "Correct recursion" },
+              { id: "4-2", points: 8, description: "Base case handling" },
+              { id: "4-3", points: 5, description: "Optimization" },
+            ],
+          },
+        ],
+      }
+      console.log("[Page] Setting mock rubric data")
+      setRubricData(mockRubricData)
+      console.log("[Page] Mock data set, returning")
+      return
     }
 
-    setRubricData(mockRubricData)
-    setView("rubric")
+    console.log("[Page] Rubric file provided, starting API call")
+    // Import the API action dynamically to avoid server/client issues
+    console.log("[Page] Dynamically importing parseRubricPDF")
+    const { parseRubricPDF } = await import("./actions")
+    console.log("[Page] parseRubricPDF imported successfully")
+
+    try {
+      console.log("[Page] Calling parseRubricPDF with file:", rubricFile.name)
+      const result = await parseRubricPDF(rubricFile)
+      console.log("[Page] parseRubricPDF returned:", result)
+
+      if (result.success && result.rubricBreakdown) {
+        console.log("[Page] Parse successful, creating rubric with name")
+        const rubricWithName: RubricBreakdown = {
+          assignmentName: assignment.name || "New Assignment",
+          questions: result.rubricBreakdown.questions,
+        }
+        console.log("[Page] Setting rubric data:", rubricWithName)
+        setRubricData(rubricWithName)
+        console.log("[Page] Rubric data set successfully")
+      } else {
+        console.error("[Page] Failed to parse rubric:", result.error)
+        alert(`Failed to parse rubric: ${result.error}`)
+        setView("create")
+      }
+    } catch (error) {
+      console.error("[Page] Error calling parseRubricPDF:", error)
+      alert("An error occurred while parsing the rubric. Please try again.")
+      setView("create")
+    }
   }
 
   const handleConfirmRubric = (updatedRubricData: RubricBreakdown) => {
@@ -322,7 +367,7 @@ export default function Page() {
             {view === "create" && (
               <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
             )}
-            {view === "rubric" && rubricData && (
+            {view === "rubric" && (
               <RubricBreakdownPage
                 rubricData={rubricData}
                 onBack={() => setView("create")}
