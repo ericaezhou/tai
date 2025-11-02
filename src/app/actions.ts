@@ -1,6 +1,6 @@
 'use server'
 
-import { db } from '@/lib/database';
+import { InMemoryDatabase, db } from '@/lib/database';
 import { Solution, StructuredAnswer } from '@/types';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -248,7 +248,7 @@ export async function gradeAssignment(assignmentId: string, studentId: string) {
     const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
     const solutions = await db.getSolutionsByAssignment(assignmentId);
 
-    if (submission == null) {
+    if (!submission) {
       return {
         success: false,
         error: 'Submission not found',
