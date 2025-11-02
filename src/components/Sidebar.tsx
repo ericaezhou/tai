@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 
 interface Assignment {
   id: string;
@@ -11,22 +11,19 @@ interface Assignment {
 interface SidebarProps {
   courseName: string;
   assignments: Assignment[];
-  onAssignmentClick?: (assignmentId: string) => void;
+  currentAssignmentId?: string;
 }
 
-export default function Sidebar({ courseName, assignments, onAssignmentClick }: SidebarProps) {
-  const [activeAssignment, setActiveAssignment] = useState(assignments[0]?.id);
-
-  const handleAssignmentClick = (assignmentId: string) => {
-    setActiveAssignment(assignmentId);
-    onAssignmentClick?.(assignmentId);
-  };
-
+export default function Sidebar({ courseName, assignments, currentAssignmentId }: SidebarProps) {
   return (
     <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-300">
       {/* TAI Branding */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-blue-600">TAI</h1>
+        <Link href="/">
+          <h1 className="text-3xl font-bold text-blue-600 cursor-pointer hover:text-blue-700">
+            TAI
+          </h1>
+        </Link>
       </div>
 
       {/* Course Name */}
@@ -45,17 +42,17 @@ export default function Sidebar({ courseName, assignments, onAssignmentClick }: 
           </h3>
           <nav className="space-y-1">
             {assignments.map((assignment) => (
-              <button
+              <Link
                 key={assignment.id}
-                onClick={() => handleAssignmentClick(assignment.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeAssignment === assignment.id
+                href={`/assignment/${assignment.id}`}
+                className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentAssignmentId === assignment.id
                     ? "bg-blue-50 text-blue-700"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 {assignment.name}
-              </button>
+              </Link>
             ))}
           </nav>
         </div>
