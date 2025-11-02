@@ -1,29 +1,34 @@
 "use client";
 
-import Link from "next/link";
-
-interface Assignment {
-  id: string;
-  name: string;
-  active?: boolean;
-}
+import type { Assignment } from "@/app/page";
 
 interface SidebarProps {
   courseName: string;
   assignments: Assignment[];
   currentAssignmentId?: string;
+  onSelectAssignment?: (assignment: Assignment) => void;
+  onBackToOverview?: () => void;
 }
 
-export default function Sidebar({ courseName, assignments, currentAssignmentId }: SidebarProps) {
+export default function Sidebar({
+  courseName,
+  assignments,
+  currentAssignmentId,
+  onSelectAssignment,
+  onBackToOverview
+}: SidebarProps) {
   return (
     <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-300">
       {/* TAI Branding */}
       <div className="p-6 border-b border-gray-200">
-        <Link href="/">
+        <button
+          onClick={onBackToOverview}
+          className="w-full text-left"
+        >
           <h1 className="text-3xl font-bold text-indigo-600 cursor-pointer hover:text-indigo-700">
             TAI
           </h1>
-        </Link>
+        </button>
       </div>
 
       {/* Course Name */}
@@ -42,17 +47,17 @@ export default function Sidebar({ courseName, assignments, currentAssignmentId }
           </h3>
           <nav className="space-y-1">
             {assignments.map((assignment) => (
-              <Link
+              <button
                 key={assignment.id}
-                href={`/assignment/${assignment.id}`}
+                onClick={() => onSelectAssignment?.(assignment)}
                 className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   currentAssignmentId === assignment.id
-                    ? "bg-blue-50 text-blue-700"
+                    ? "bg-indigo-50 text-indigo-700"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 {assignment.name}
-              </Link>
+              </button>
             ))}
           </nav>
         </div>

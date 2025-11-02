@@ -9,7 +9,6 @@ import { StudentQuestionDetail } from "@/components/student-question-detail"
 import { AssignmentSubmission } from "@/components/assignment-submission"
 import { AssignmentDetail } from "@/components/assignment-detail"
 import RubricBreakdownPage, { type RubricBreakdown } from "@/components/rubric-breakdown"
-import { sharedAssignments } from "@/lib/assignments"
 import Sidebar from "@/components/Sidebar"
 import { initializeDatabase } from "@/lib/seed-data"
 import {
@@ -351,7 +350,16 @@ export default function Page() {
         <div className="flex min-h-screen bg-gray-50">
           <Sidebar
             courseName="CS 101: Data Structures"
-            assignments={sharedAssignments}
+            assignments={assignments}
+            currentAssignmentId={view === "detail" || view === "rubric" ? selectedAssignment?.id : undefined}
+            onSelectAssignment={(assignment) => {
+              setSelectedAssignment(assignment)
+              setView("detail")
+            }}
+            onBackToOverview={() => {
+              setView("overview")
+              setSelectedAssignment(null)
+            }}
           />
           <div className="flex-1 overflow-auto">
             {view === "overview" && (
