@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       .filter(n => !isNaN(n));
 
     // Validate engines
-    const validEngines = ['paddleocr', 'pix2text', 'surya', 'unsiloed'];
+    const validEngines = ['paddleocr', 'pix2text', 'surya', 'mathpix', 'unsiloed'];
     const invalidEngines = engines.filter(e => !validEngines.includes(e));
 
     if (invalidEngines.length > 0) {

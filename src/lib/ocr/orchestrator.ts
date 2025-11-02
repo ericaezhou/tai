@@ -11,6 +11,7 @@ import { pdfToImages } from './preprocessing/pdfToImage';
 import { runPaddleOCR } from './engines/paddleocr';
 import { runPix2Text } from './engines/pix2text';
 import { runSuryaOCR } from './engines/surya';
+import { runMathpixOCR } from './engines/mathpix';
 import { runUnsiloedOCR } from './engines/unsiloed';
 import { weightedVote, majorityVote } from './consensus/weighted';
 import { clusterBySimilarity } from './consensus/clustering';
@@ -242,6 +243,9 @@ export async function multiScanOCR(request: MultiScanRequest): Promise<MultiScan
             case 'surya':
               result = await runSuryaOCR(imageBuffer, questionNumber);
               break;
+            case 'mathpix':
+              result = await runMathpixOCR(imageBuffer, questionNumber);
+              break;
             case 'unsiloed':
               // For Unsiloed, we need the full PDF buffer
               result = await runUnsiloedOCR(pdfBuffer, questionNumber);
@@ -384,6 +388,8 @@ export async function testSingleEngine(
       return await runPix2Text(imageBuffer, questionNumber);
     case 'surya':
       return await runSuryaOCR(imageBuffer, questionNumber);
+    case 'mathpix':
+      return await runMathpixOCR(imageBuffer, questionNumber);
     case 'unsiloed':
       return await runUnsiloedOCR(pdfBuffer, questionNumber);
     default:
