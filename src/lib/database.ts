@@ -18,13 +18,14 @@ class InMemoryDatabase {
   private courses: Map<string, Course> = new Map();
   private assignments: Map<string, Assignment> = new Map();
   private assignmentQuestions: Map<string, AssignmentQuestion> = new Map();
+  // key: submission id 
   private studentSubmissions: Map<string, StudentAssignmentSubmission> = new Map();
   private submissionFiles: Map<string, SubmissionFile> = new Map();
   private questionSubmissions: Map<string, QuestionSubmission> = new Map();
   private students: Map<string, Student> = new Map();
   private courseEnrollments: Map<string, CourseEnrollment> = new Map();
 
-  // Solution operations (existing)
+
   async saveSolution(solution: Solution): Promise<Solution> {
     this.solutions.set(solution.id, solution);
     return solution;

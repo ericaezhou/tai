@@ -1,4 +1,5 @@
 import { db } from './database';
+import { gradeAssignment } from '@/app/actions';
 import type {
   Course,
   Assignment,
@@ -148,7 +149,12 @@ export async function submitAssignment(
   try {
     // Create or update student submission
     const existingSubmission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
-    
+
+    // Parse structured answers from text submission
+    // For now, we'll create a simple structured answer from the text submission
+    // In a real implementation, you might parse this more intelligently
+    const structuredAnswers = await parseTextSubmissionToStructuredAnswers(textSubmission, assignmentId);
+
     const submissionData: StudentAssignmentSubmission = {
       id: existingSubmission?.id || `submission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       assignmentId,
@@ -156,12 +162,13 @@ export async function submitAssignment(
       status: "ungraded",
       submittedAt: new Date(),
       textSubmission: textSubmission || undefined,
+      structuredAnswer: structuredAnswers,
       createdAt: existingSubmission?.createdAt || new Date(),
       updatedAt: new Date()
     };
-    
+
     await db.saveStudentSubmission(submissionData);
-    
+
     // Save files (in a real implementation, you'd upload to cloud storage)
     for (const file of files) {
       const fileData = {
@@ -173,14 +180,114 @@ export async function submitAssignment(
         filePath: `/uploads/${submissionData.id}/${file.name}`, // Mock path
         uploadedAt: new Date()
       };
-      
+
       await db.saveSubmissionFile(fileData);
     }
-    
+
+    // Automatically grade the assignment after submission
+    console.log('Automatically grading assignment after submission...');
+    try {
+      const gradingResult = await gradeAssignment(assignmentId, studentId);
+      if (gradingResult.success) {
+        console.log('Assignment graded successfully:', gradingResult);
+      } else {
+        console.error('Failed to grade assignment:', gradingResult.error);
+        // Don't fail the submission if grading fails
+      }
+    } catch (gradingError) {
+      console.error('Error during automatic grading:', gradingError);
+      // Don't fail the submission if grading fails
+    }
+
     return true;
   } catch (error) {
     console.error('Error submitting assignment:', error);
     return false;
+  }
+}
+
+// Helper function to parse text submission into structured answers
+async function parseTextSubmissionToStructuredAnswers(
+  textSubmission: string,
+  assignmentId: string
+): Promise<Array<{ questionNumber: number; content: string }>> {
+  try {
+    // Get assignment questions to know how many questions there are
+    const questions = await db.getAssignmentQuestions(assignmentId);
+
+    if (!textSubmission || textSubmission.trim() === '') {
+      // If no text submission, create empty structured answers for each question
+      return questions.map((_, index) => ({
+        questionNumber: index + 1,
+        content: ''
+      }));
+    }
+
+    // Simple parsing logic - split by question patterns
+    // Look for patterns like "Question 1:", "Q1:", "1.", etc.
+    const questionPattern = /(?:Question\s*(\d+)|Q(\d+)|(\d+)\.)\s*:?\s*/gi;
+    const parts = textSubmission.split(questionPattern).filter(part => part && part.trim());
+
+    const structuredAnswers: Array<{ questionNumber: number; content: string }> = [];
+
+    // If we can parse questions from the text
+    if (parts.length > 1) {
+      for (let i = 0; i < parts.length; i += 2) {
+        const questionNum = parseInt(parts[i]) || (i / 2) + 1;
+        const content = parts[i + 1] || '';
+
+        if (questionNum <= questions.length) {
+          structuredAnswers.push({
+            questionNumber: questionNum,
+            content: content.trim()
+          });
+        }
+      }
+    }
+
+    // If parsing didn't work or we don't have enough answers,
+    // distribute the text across questions or put it all in question 1
+    if (structuredAnswers.length === 0) {
+      if (questions.length === 1) {
+        structuredAnswers.push({
+          questionNumber: 1,
+          content: textSubmission.trim()
+        });
+      } else {
+        // For multiple questions, put all text in question 1 and empty for others
+        structuredAnswers.push({
+          questionNumber: 1,
+          content: textSubmission.trim()
+        });
+
+        for (let i = 2; i <= questions.length; i++) {
+          structuredAnswers.push({
+            questionNumber: i,
+            content: ''
+          });
+        }
+      }
+    }
+
+    // Ensure we have answers for all questions
+    for (let i = 1; i <= questions.length; i++) {
+      if (!structuredAnswers.find(ans => ans.questionNumber === i)) {
+        structuredAnswers.push({
+          questionNumber: i,
+          content: ''
+        });
+      }
+    }
+
+    return structuredAnswers.sort((a, b) => a.questionNumber - b.questionNumber);
+
+  } catch (error) {
+    console.error('Error parsing structured answers:', error);
+    // Fallback: return single answer with all text
+    return [{
+      questionNumber: 1,
+      content: textSubmission || ''
+    }];
   }
 }
 

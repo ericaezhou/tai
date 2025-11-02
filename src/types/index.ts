@@ -111,9 +111,15 @@ export interface StudentAssignmentSubmission {
   score?: number;
   submittedAt?: Date;
   files?: SubmissionFile[];
+  structuredAnswer: StructuredAnswer[];
   textSubmission?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface StructuredAnswer {
+  questionNumber: number,
+  content: string
 }
 
 export interface SubmissionFile {
