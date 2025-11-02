@@ -88,17 +88,25 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
             <CardDescription>Review your answers for each question</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {assignment.questions.map((question, index) => (
-              <div key={question.id} className="space-y-2">
-                <div className="bg-muted p-4 rounded-md">
-                  {question.submission ? (
-                    <pre className="whitespace-pre-wrap text-sm font-mono">{question.submission}</pre>
-                  ) : (
-                    <p className="text-muted-foreground italic text-sm">No submission provided</p>
-                  )}
+            <div key={assignment.id} className="space-y-2">
+              <div className="bg-muted p-4 rounded-md">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-10 bg-red-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">PDF</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      submission.pdf
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Submitted {new Date(assignment.dueDate).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
           </CardContent>
         </Card>
 
