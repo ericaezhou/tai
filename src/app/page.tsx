@@ -6,6 +6,7 @@ import CreateAssignment from "@/components/create-assignment"
 import { StudentOverview } from "@/components/student-overview"
 import { StudentAssignmentDetail } from "@/components/student-assignment-detail"
 import { StudentQuestionDetail } from "@/components/student-question-detail"
+import RubricBreakdownPage, { type RubricBreakdown } from "@/components/rubric-breakdown"
 import { sharedAssignments } from "@/lib/assignments"
 import Sidebar from "@/components/Sidebar"
 
@@ -49,7 +50,9 @@ export type Question = {
 
 export default function Page() {
   const [mode, setMode] = useState<"ta" | "student">("ta")
-  const [view, setView] = useState<"overview" | "create">("overview")
+  const [view, setView] = useState<"overview" | "create" | "rubric" | "detail">("overview")
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [rubricData, setRubricData] = useState<RubricBreakdown | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: "1",
@@ -213,7 +216,62 @@ export default function Page() {
   ])
 
   const handleCreateAssignment = (assignment: Assignment) => {
-    setAssignments([...assignments, assignment])
+    // Mock rubric data - in production, this would come from backend API
+    const mockRubricData: RubricBreakdown = {
+      assignmentName: assignment.name || "New Assignment",
+      questions: [
+        {
+          id: "1",
+          questionNumber: 1,
+          summary: "Implement a binary search algorithm with proper edge case handling",
+          totalPoints: 20,
+          criteria: [
+            { id: "1-1", points: 10, description: "Correct implementation" },
+            { id: "1-2", points: 5, description: "Edge cases handled" },
+            { id: "1-3", points: 5, description: "Code quality" },
+          ],
+        },
+        {
+          id: "2",
+          questionNumber: 2,
+          summary: "Analyze time and space complexity of given algorithms",
+          totalPoints: 25,
+          criteria: [
+            { id: "2-1", points: 15, description: "Time complexity analysis" },
+            { id: "2-2", points: 10, description: "Space complexity analysis" },
+          ],
+        },
+        {
+          id: "3",
+          questionNumber: 3,
+          summary: "Design and implement a linked list data structure",
+          totalPoints: 30,
+          criteria: [
+            { id: "3-1", points: 15, description: "Core functionality" },
+            { id: "3-2", points: 10, description: "Additional operations" },
+            { id: "3-3", points: 5, description: "Documentation" },
+          ],
+        },
+        {
+          id: "4",
+          questionNumber: 4,
+          summary: "Write a recursive solution for the Tower of Hanoi problem",
+          totalPoints: 25,
+          criteria: [
+            { id: "4-1", points: 12, description: "Correct recursion" },
+            { id: "4-2", points: 8, description: "Base case handling" },
+            { id: "4-3", points: 5, description: "Optimization" },
+          ],
+        },
+      ],
+    }
+
+    setRubricData(mockRubricData)
+    setView("rubric")
+  }
+
+  const handleConfirmRubric = () => {
+    // Here you would save the assignment with the confirmed rubric
     setView("overview")
   }
 
@@ -261,6 +319,16 @@ export default function Page() {
             )}
             {view === "create" && (
               <CreateAssignment onBack={() => setView("overview")} onCreate={handleCreateAssignment} />
+            )}
+            {view === "rubric" && rubricData && (
+              <RubricBreakdownPage
+                rubricData={rubricData}
+                onBack={() => setView("create")}
+                onConfirm={handleConfirmRubric}
+              />
+            )}
+            {view === "detail" && selectedAssignment && (
+              <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
             )}
           </div>
         </div>

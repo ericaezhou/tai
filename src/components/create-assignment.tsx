@@ -17,8 +17,12 @@ interface CreateAssignmentPageProps {
 }
 
 export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignmentPageProps) {
+  const [assignmentName, setAssignmentName] = useState("")
   const [questionFile, setQuestionFile] = useState<File | null>(null)
   const [rubricFile, setRubricFile] = useState<File | null>(null)
+  const [specialInstructions, setSpecialInstructions] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [dueDate, setDueDate] = useState("")
 
   const handleQuestionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -30,6 +34,17 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
     if (e.target.files && e.target.files[0]) {
       setRubricFile(e.target.files[0])
     }
+  }
+
+  const handleNext = () => {
+    // In production, this would upload files to backend and get rubric analysis
+    const newAssignment: Assignment = {
+      id: Date.now().toString(),
+      name: assignmentName,
+      dueDate: dueDate,
+      students: [],
+    }
+    onCreate(newAssignment)
   }
 
   return (
@@ -53,7 +68,13 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
               <Label htmlFor="assignment-name" className="text-sm font-semibold">
                 Assignment Name
               </Label>
-              <Input id="assignment-name" placeholder="Enter assignment name" className="mt-2" />
+              <Input
+                id="assignment-name"
+                placeholder="Enter assignment name"
+                className="mt-2"
+                value={assignmentName}
+                onChange={(e) => setAssignmentName(e.target.value)}
+              />
             </div>
 
             {/* Question Section */}
@@ -111,6 +132,8 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
                 id="special-instructions"
                 placeholder="Enter any special instructions for this assignment..."
                 className="mt-2 min-h-[120px] resize-none"
+                value={specialInstructions}
+                onChange={(e) => setSpecialInstructions(e.target.value)}
               />
             </div>
 
@@ -120,20 +143,32 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
                 <Label htmlFor="start-date" className="text-sm font-semibold">
                   Start Date
                 </Label>
-                <Input id="start-date" type="date" className="mt-2" />
+                <Input
+                  id="start-date"
+                  type="date"
+                  className="mt-2"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
 
               <div>
                 <Label htmlFor="due-date" className="text-sm font-semibold">
                   Due Date
                 </Label>
-                <Input id="due-date" type="date" className="mt-2" />
+                <Input
+                  id="due-date"
+                  type="date"
+                  className="mt-2"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
               </div>
             </div>
 
             {/* Next Button */}
             <div className="flex justify-end pt-4">
-              <Button size="lg" className="min-w-[120px]">
+              <Button size="lg" className="min-w-[120px]" onClick={handleNext}>
                 Next
               </Button>
             </div>
