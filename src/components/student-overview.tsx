@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Menu, BookOpen, CheckCircle2, Clock, UserCog } from "lucide-react"
+import { Menu, BookOpen, CheckCircle2, Clock, UserCog, Upload } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Course, StudentAssignment } from "@/app/page"
 
@@ -95,10 +95,15 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                         <span className="font-semibold">{assignment.score}</span>
                       </div>
-                    ) : (
+                    ) : assignment.status === "ungraded" ? (
                       <Badge variant="secondary" className="gap-1">
                         <Clock className="h-3 w-3" />
                         Ungraded
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1 text-orange-600 border-orange-200">
+                        <Upload className="h-3 w-3" />
+                        Not Submitted
                       </Badge>
                     )}
                   </TableCell>

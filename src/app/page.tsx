@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AssignmentsOverview } from "@/components/assignments-overview"
 import CreateAssignment from "@/components/create-assignment"
 import { StudentOverview } from "@/components/student-overview"
 import { StudentAssignmentDetail } from "@/components/student-assignment-detail"
 import { StudentQuestionDetail } from "@/components/student-question-detail"
+import { AssignmentSubmission } from "@/components/assignment-submission"
+import { AssignmentDetail } from "@/components/assignment-detail"
 import RubricBreakdownPage, { type RubricBreakdown } from "@/components/rubric-breakdown"
 import { sharedAssignments } from "@/lib/assignments"
 import Sidebar from "@/components/Sidebar"
+import { initializeDatabase } from "@/lib/seed-data"
+import {
+  getCoursesWithAssignmentsForStudent,
+  submitAssignment as submitAssignmentToDb,
+  type CourseWithAssignments,
+  type StudentAssignment as DbStudentAssignment,
+  type Question as DbQuestion
+} from "@/lib/queries"
 
 export type Assignment = {
   id: string
@@ -35,7 +45,7 @@ export type StudentAssignment = {
   name: string
   dueDate: string
   score?: number
-  status: "graded" | "ungraded"
+  status: "graded" | "ungraded" | "not_submitted"
   questions?: Question[]
 }
 
@@ -49,7 +59,7 @@ export type Question = {
 }
 
 export default function Page() {
-  const [mode, setMode] = useState<"ta" | "student">("ta")
+  const [mode, setMode] = useState<"ta" | "student">("student") // Start in student mode to show the new functionality
   const [view, setView] = useState<"overview" | "create" | "rubric" | "detail">("overview")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [rubricData, setRubricData] = useState<RubricBreakdown | null>(null)
@@ -86,134 +96,34 @@ export default function Page() {
     },
   ])
 
-  const [studentView, setStudentView] = useState<"overview" | "assignment" | "question">("overview")
-  const [selectedStudentAssignment, setSelectedStudentAssignment] = useState<StudentAssignment | null>(null)
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
-  const [courses] = useState<Course[]>([
-    {
-      id: "1",
-      name: "Computer Science 101",
-      assignments: [
-        {
-          id: "1",
-          name: "Midterm Exam",
-          dueDate: "2025-03-15",
-          score: 92,
-          status: "graded",
-          questions: [
-            {
-              id: "1",
-              name: "Question 1: Binary Search",
-              pointsAwarded: 18,
-              totalPoints: 20,
-              submission: "/handwritten-binary-search-algorithm.jpg",
-              feedback: "Great implementation! Minor issue with edge case handling for empty arrays.",
-            },
-            {
-              id: "2",
-              name: "Question 2: Time Complexity",
-              pointsAwarded: 25,
-              totalPoints: 25,
-              submission: "/time-complexity-analysis-notes.jpg",
-              feedback: "Perfect analysis of the algorithm's time complexity.",
-            },
-            {
-              id: "3",
-              name: "Question 3: Data Structures",
-              pointsAwarded: 22,
-              totalPoints: 25,
-              submission: "/data-structures-diagram.png",
-              feedback: "Good understanding, but missed the space complexity discussion.",
-            },
-            {
-              id: "4",
-              name: "Question 4: Recursion",
-              pointsAwarded: 27,
-              totalPoints: 30,
-              submission: "/recursive-function-code.jpg",
-              feedback: "Excellent recursive solution. Could be optimized with memoization.",
-            },
-          ],
-        },
-        {
-          id: "2",
-          name: "Homework 3",
-          dueDate: "2025-03-22",
-          status: "ungraded",
-        },
-        {
-          id: "3",
-          name: "Final Project",
-          dueDate: "2025-05-20",
-          score: 88,
-          status: "graded",
-          questions: [
-            {
-              id: "1",
-              name: "Implementation",
-              pointsAwarded: 45,
-              totalPoints: 50,
-              submission: "/project-code-implementation.jpg",
-              feedback: "Strong implementation with good code structure.",
-            },
-            {
-              id: "2",
-              name: "Documentation",
-              pointsAwarded: 20,
-              totalPoints: 25,
-              submission: "/project-documentation.jpg",
-              feedback: "Documentation is clear but could include more examples.",
-            },
-            {
-              id: "3",
-              name: "Testing",
-              pointsAwarded: 23,
-              totalPoints: 25,
-              submission: "/test-cases-code.jpg",
-              feedback: "Comprehensive test coverage.",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Data Structures",
-      assignments: [
-        {
-          id: "4",
-          name: "Assignment 1",
-          dueDate: "2025-02-10",
-          score: 95,
-          status: "graded",
-          questions: [
-            {
-              id: "1",
-              name: "Linked Lists",
-              pointsAwarded: 48,
-              totalPoints: 50,
-              submission: "/linked-list-implementation.jpg",
-              feedback: "Excellent work on linked list operations.",
-            },
-            {
-              id: "2",
-              name: "Trees",
-              pointsAwarded: 47,
-              totalPoints: 50,
-              submission: "/tree-traversal-code.jpg",
-              feedback: "Perfect tree traversal implementation.",
-            },
-          ],
-        },
-        {
-          id: "5",
-          name: "Assignment 2",
-          dueDate: "2025-04-01",
-          status: "ungraded",
-        },
-      ],
-    },
-  ])
+  const [studentView, setStudentView] = useState<"overview" | "assignment" | "question" | "submission">("overview")
+  const [selectedStudentAssignment, setSelectedStudentAssignment] = useState<DbStudentAssignment | null>(null)
+  const [selectedQuestion, setSelectedQuestion] = useState<DbQuestion | null>(null)
+  const [courses, setCourses] = useState<CourseWithAssignments[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Initialize database and load courses on component mount
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        setIsLoading(true)
+        console.log('Initializing database...')
+        await initializeDatabase()
+
+        console.log('Loading courses for student...')
+        const studentId = 'student_1' // In a real app, this would come from authentication
+        const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
+        setCourses(coursesData)
+        console.log('Courses loaded:', coursesData)
+      } catch (error) {
+        console.error('Error initializing data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeData()
+  }, [])
 
   const handleCreateAssignment = async (assignment: Assignment, rubricFile: File | null) => {
     console.log("[Page] handleCreateAssignment called")
@@ -322,9 +232,46 @@ export default function Page() {
     setView("overview")
   }
 
-  const handleSelectStudentAssignment = (assignment: StudentAssignment) => {
+  const handleSelectStudentAssignment = (assignment: DbStudentAssignment) => {
     setSelectedStudentAssignment(assignment)
-    setStudentView("assignment")
+    if (assignment.status === "not_submitted") {
+      setStudentView("submission")
+    } else {
+      setStudentView("assignment")
+    }
+  }
+
+  const handleSubmitAssignment = async (files: File[], textSubmission: string) => {
+    if (!selectedStudentAssignment) return
+
+    try {
+      console.log("Submitting assignment:", selectedStudentAssignment.name)
+      console.log("Files:", files.map(f => f.name))
+      console.log("Text submission:", textSubmission)
+
+      // Use the database submission function
+      const success = await submitAssignmentToDb(
+        selectedStudentAssignment.id,
+        'student_1', // In a real app, this would come from authentication
+        files,
+        textSubmission
+      )
+
+      if (success) {
+        // Refresh the courses data to show updated status
+        const studentId = 'student_1'
+        const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
+        setCourses(coursesData)
+
+        alert("Assignment submitted successfully!")
+        setStudentView("overview")
+      } else {
+        alert("Failed to submit assignment. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error submitting assignment:", error)
+      alert("An error occurred while submitting the assignment.")
+    }
   }
 
   const handleSelectQuestion = (question: Question) => {
@@ -349,7 +296,14 @@ export default function Page() {
 
   return (
     <>
-      {mode === "ta" ? (
+      {isLoading ? (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-lg text-muted-foreground">Loading courses and assignments...</p>
+          </div>
+        </div>
+      ) : mode === "ta" ? (
         <div className="flex min-h-screen bg-gray-50">
           <Sidebar
             courseName="CS 101: Data Structures"
@@ -360,6 +314,10 @@ export default function Page() {
               <AssignmentsOverview
                 assignments={assignments}
                 onCreateNew={() => setView("create")}
+                onSelectAssignment={(assignment) => {
+                  setSelectedAssignment(assignment)
+                  setView("detail")
+                }}
                 mode={mode}
                 onToggleMode={toggleMode}
               />
@@ -400,6 +358,13 @@ export default function Page() {
               question={selectedQuestion}
               assignmentName={selectedStudentAssignment.name}
               onBack={handleBackToAssignment}
+            />
+          )}
+          {studentView === "submission" && selectedStudentAssignment && (
+            <AssignmentSubmission
+              assignment={selectedStudentAssignment}
+              onBack={handleBackToOverview}
+              onSubmit={handleSubmitAssignment}
             />
           )}
         </div>
