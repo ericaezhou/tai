@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getJobStatus,
   getJobResult,
-  getParseResults,
 } from "@/lib/unsiloedClient";
+
+const BASE = process.env.UNSILOED_BASE_URL ?? "https://prod.visionapi.unsiloed.ai";
+const API_KEY = process.env.UNSILOED_API_KEY!;
+
+function headers() {
+  return {
+    "api-key": API_KEY,
+    "X-API-Key": API_KEY,
+    accept: "application/json",
+  };
+}
 
 /**
  * GET /api/extraction-status/[jobId]?type=extraction|parse
@@ -34,8 +44,16 @@ export async function GET(
     }
 
     if (type === "parse") {
-      // For parse jobs, use the parse-specific endpoint
-      const result = await getParseResults(jobId, 0, 1000); // Don't poll, just check once
+      // For parse jobs, fetch status once (don't poll)
+      const res = await fetch(`${BASE}/parse/${jobId}`, {
+        headers: headers(),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Parse status check failed: ${res.status}`);
+      }
+
+      const result = await res.json();
 
       if (result.status === "Succeeded") {
         return NextResponse.json({
@@ -50,6 +68,7 @@ export async function GET(
           error: "Parse job failed",
         });
       } else {
+        // Still processing (Starting, Processing, etc.)
         return NextResponse.json({
           status: "processing",
           jobId,
