@@ -28,7 +28,7 @@ export function AssignmentsOverview({
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-balance">TA Dashboard</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-balance">Instructor Dashboard</h1>
           <p className="text-muted-foreground mt-2">Manage assignments and track student performance</p>
         </div>
         <div className="flex items-center gap-3">

@@ -6,7 +6,9 @@ import type {
   AssignmentQuestion,
   StudentAssignmentSubmission,
   QuestionSubmission,
-  Student
+  Student,
+  AssignmentRubric,
+  RubricQuestion
 } from '@/types';
 
 // Types for the page components (matching existing structure)
@@ -288,6 +290,154 @@ async function parseTextSubmissionToStructuredAnswers(
       questionNumber: 1,
       content: textSubmission || ''
     }];
+  }
+}
+
+// Query functions for instructor/TA dashboard
+export type InstructorAssignment = {
+  id: string;
+  name: string;
+  dueDate: string;
+  description?: string;
+  totalPoints: number;
+  questionCount: number;
+};
+
+export async function getAssignmentsForCourse(courseId: string): Promise<InstructorAssignment[]> {
+  try {
+    const assignments = await db.getAssignmentsByCourse(courseId);
+
+    const instructorAssignments: InstructorAssignment[] = [];
+
+    for (const assignment of assignments) {
+      const questions = await db.getAssignmentQuestions(assignment.id);
+
+      instructorAssignments.push({
+        id: assignment.id,
+        name: assignment.name,
+        dueDate: assignment.dueDate.toISOString(),
+        description: assignment.description,
+        totalPoints: assignment.totalPoints,
+        questionCount: questions.length
+      });
+    }
+
+    return instructorAssignments;
+  } catch (error) {
+    console.error('Error fetching assignments for course:', error);
+    return [];
+  }
+}
+
+export async function getCourseByName(courseName: string): Promise<Course | null> {
+  try {
+    const courses = await db.getAllCourses();
+    return courses.find(c => c.name === courseName) || null;
+  } catch (error) {
+    console.error('Error fetching course by name:', error);
+    return null;
+  }
+}
+
+export async function createAssignment(
+  courseId: string,
+  name: string,
+  dueDate: Date,
+  description?: string,
+  totalPoints?: number
+): Promise<Assignment | null> {
+  try {
+    const newAssignment: Assignment = {
+      id: generateId('assignment_'),
+      courseId,
+      name,
+      description,
+      dueDate,
+      totalPoints,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await db.saveAssignment(newAssignment);
+    return newAssignment;
+  } catch (error) {
+    console.error('Error creating assignment:', error);
+    return null;
+  }
+}
+
+export async function saveAssignmentRubric(
+  assignmentId: string,
+  assignmentName: string,
+  questions: RubricQuestion[]
+): Promise<AssignmentRubric | null> {
+  try {
+    const rubric: AssignmentRubric = {
+      id: generateId('rubric_'),
+      assignmentId,
+      assignmentName,
+      questions,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await db.saveAssignmentRubric(rubric);
+    return rubric;
+  } catch (error) {
+    console.error('Error saving assignment rubric:', error);
+    return null;
+  }
+}
+
+export async function getAssignmentRubric(assignmentId: string): Promise<AssignmentRubric | null> {
+  try {
+    return await db.getAssignmentRubric(assignmentId);
+  } catch (error) {
+    console.error('Error getting assignment rubric:', error);
+    return null;
+  }
+}
+
+// Get student performance data for an assignment (for instructor view)
+export type StudentPerformance = {
+  id: string;
+  name: string;
+  score?: number;
+};
+
+export async function getStudentPerformanceForAssignment(assignmentId: string, courseId: string): Promise<StudentPerformance[]> {
+  try {
+    // Get all submissions for this assignment
+    const submissions = await db.getSubmissionsByAssignment(assignmentId);
+
+    // Get all enrolled students for the course
+    const assignment = await db.getAssignment(assignmentId);
+    if (!assignment) return [];
+
+    // Get all students enrolled in the course
+    const allEnrollments = Array.from((db as any).courseEnrollments.values()).filter(
+      (e: any) => e.courseId === courseId
+    );
+
+    const studentPerformances: StudentPerformance[] = [];
+
+    for (const enrollment of allEnrollments) {
+      const student = await db.getStudent(enrollment.studentId);
+      if (!student) continue;
+
+      const submission = submissions.find(s => s.studentId === student.id);
+
+      studentPerformances.push({
+        id: student.id,
+        name: student.name,
+        score: submission?.score
+      });
+    }
+
+    return studentPerformances;
+  } catch (error) {
+    console.error('Error getting student performance:', error);
+    return [];
   }
 }
 

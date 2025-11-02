@@ -8,7 +8,8 @@ import {
   SubmissionFile,
   QuestionSubmission,
   Student,
-  CourseEnrollment
+  CourseEnrollment,
+  AssignmentRubric
 } from '@/types';
 
 // Simple in-memory storage - replace with real database in production
@@ -18,12 +19,13 @@ class InMemoryDatabase {
   private courses: Map<string, Course> = new Map();
   private assignments: Map<string, Assignment> = new Map();
   private assignmentQuestions: Map<string, AssignmentQuestion> = new Map();
-  // key: submission id 
+  // key: submission id
   private studentSubmissions: Map<string, StudentAssignmentSubmission> = new Map();
   private submissionFiles: Map<string, SubmissionFile> = new Map();
   private questionSubmissions: Map<string, QuestionSubmission> = new Map();
   private students: Map<string, Student> = new Map();
   private courseEnrollments: Map<string, CourseEnrollment> = new Map();
+  private assignmentRubrics: Map<string, AssignmentRubric> = new Map();
 
 
   async saveSolution(solution: Solution): Promise<Solution> {
@@ -193,6 +195,25 @@ class InMemoryDatabase {
     return Array.from(this.questionSubmissions.values()).find(
       qs => qs.submissionId === submissionId && qs.questionId === questionId
     ) || null;
+  }
+
+  // Assignment Rubric operations
+  async saveAssignmentRubric(rubric: AssignmentRubric): Promise<AssignmentRubric> {
+    this.assignmentRubrics.set(rubric.id, rubric);
+    return rubric;
+  }
+
+  async getAssignmentRubric(assignmentId: string): Promise<AssignmentRubric | null> {
+    return Array.from(this.assignmentRubrics.values()).find(
+      rubric => rubric.assignmentId === assignmentId
+    ) || null;
+  }
+
+  async deleteAssignmentRubric(assignmentId: string): Promise<void> {
+    const rubric = await this.getAssignmentRubric(assignmentId);
+    if (rubric) {
+      this.assignmentRubrics.delete(rubric.id);
+    }
   }
 }
 

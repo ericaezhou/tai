@@ -14,9 +14,17 @@ import { initializeDatabase } from "@/lib/seed-data"
 import {
   getCoursesWithAssignmentsForStudent,
   submitAssignment as submitAssignmentToDb,
+  getAssignmentsForCourse,
+  getCourseByName,
+  createAssignment as createAssignmentInDb,
+  saveAssignmentRubric,
+  getAssignmentRubric,
+  getStudentPerformanceForAssignment,
   type CourseWithAssignments,
   type StudentAssignment as DbStudentAssignment,
-  type Question as DbQuestion
+  type Question as DbQuestion,
+  type InstructorAssignment,
+  type StudentPerformance
 } from "@/lib/queries"
 
 export type Assignment = {
@@ -64,165 +72,8 @@ export default function Page() {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [rubricData, setRubricData] = useState<RubricBreakdown | null>(null)
   const [pendingAssignment, setPendingAssignment] = useState<Assignment | null>(null)
-  const [assignments, setAssignments] = useState<Assignment[]>([
-    {
-      id: "1",
-      name: "HW1 - Probability Foundations",
-      dueDate: "2025-09-15",
-      rubricBreakdown: {
-        assignmentName: "HW1 - Probability Foundations",
-        questions: [
-          {
-            id: "hw1-q1",
-            questionNumber: 1,
-            summary: "Calculate probability using basic counting principles and sample spaces",
-            totalPoints: 20,
-            criteria: [
-              { id: "hw1-q1-c1", points: 8, description: "Correct sample space identification" },
-              { id: "hw1-q1-c2", points: 7, description: "Accurate probability calculation" },
-              { id: "hw1-q1-c3", points: 5, description: "Clear explanation of reasoning" },
-            ],
-          },
-          {
-            id: "hw1-q2",
-            questionNumber: 2,
-            summary: "Apply conditional probability and independence concepts",
-            totalPoints: 25,
-            criteria: [
-              { id: "hw1-q2-c1", points: 12, description: "Correct application of conditional probability formula" },
-              { id: "hw1-q2-c2", points: 8, description: "Independence verification" },
-              { id: "hw1-q2-c3", points: 5, description: "Work shown and justified" },
-            ],
-          },
-          {
-            id: "hw1-q3",
-            questionNumber: 3,
-            summary: "Use Bayes' theorem to solve real-world probability problems",
-            totalPoints: 30,
-            criteria: [
-              { id: "hw1-q3-c1", points: 15, description: "Correct Bayes' theorem setup" },
-              { id: "hw1-q3-c2", points: 10, description: "Accurate numerical computation" },
-              { id: "hw1-q3-c3", points: 5, description: "Interpretation of results" },
-            ],
-          },
-        ],
-      },
-      students: [
-        { id: "1", name: "Alice Johnson", score: 92 },
-        { id: "2", name: "Bob Smith", score: 85 },
-        { id: "3", name: "Carol White", score: 78 },
-        { id: "4", name: "David Brown", score: 88 },
-      ],
-    },
-    {
-      id: "2",
-      name: "HW2 - Random Variables",
-      dueDate: "2025-10-15",
-      rubricBreakdown: {
-        assignmentName: "HW2 - Random Variables",
-        questions: [
-          {
-            id: "hw2-q1",
-            questionNumber: 1,
-            summary: "Derive probability mass functions for discrete random variables",
-            totalPoints: 25,
-            criteria: [
-              { id: "hw2-q1-c1", points: 12, description: "Correct PMF derivation" },
-              { id: "hw2-q1-c2", points: 8, description: "Verification that probabilities sum to 1" },
-              { id: "hw2-q1-c3", points: 5, description: "Clear notation and presentation" },
-            ],
-          },
-          {
-            id: "hw2-q2",
-            questionNumber: 2,
-            summary: "Calculate expected value and variance for random variables",
-            totalPoints: 30,
-            criteria: [
-              { id: "hw2-q2-c1", points: 15, description: "Correct expected value calculation" },
-              { id: "hw2-q2-c2", points: 12, description: "Correct variance calculation" },
-              { id: "hw2-q2-c3", points: 3, description: "Units and interpretation" },
-            ],
-          },
-          {
-            id: "hw2-q3",
-            questionNumber: 3,
-            summary: "Apply common probability distributions (Binomial, Poisson, Geometric)",
-            totalPoints: 20,
-            criteria: [
-              { id: "hw2-q3-c1", points: 10, description: "Correct distribution identification" },
-              { id: "hw2-q3-c2", points: 10, description: "Accurate parameter estimation and calculation" },
-            ],
-          },
-        ],
-      },
-      students: [
-        { id: "1", name: "Alice Johnson", score: 88 },
-        { id: "2", name: "Bob Smith", score: 91 },
-        { id: "3", name: "Carol White", score: 82 },
-        { id: "4", name: "David Brown", score: 79 },
-      ],
-    },
-    {
-      id: "3",
-      name: "Midterm Exam",
-      dueDate: "2025-11-08",
-      rubricBreakdown: {
-        assignmentName: "Midterm Exam",
-        questions: [
-          {
-            id: "midterm-q1",
-            questionNumber: 1,
-            summary: "Solve complex problems using law of total probability",
-            totalPoints: 20,
-            criteria: [
-              { id: "midterm-q1-c1", points: 10, description: "Correct partition identification" },
-              { id: "midterm-q1-c2", points: 8, description: "Accurate application of law of total probability" },
-              { id: "midterm-q1-c3", points: 2, description: "Final answer correctness" },
-            ],
-          },
-          {
-            id: "midterm-q2",
-            questionNumber: 2,
-            summary: "Analyze joint probability distributions and marginal distributions",
-            totalPoints: 25,
-            criteria: [
-              { id: "midterm-q2-c1", points: 12, description: "Correct joint distribution calculation" },
-              { id: "midterm-q2-c2", points: 10, description: "Accurate marginal distributions" },
-              { id: "midterm-q2-c3", points: 3, description: "Covariance and correlation analysis" },
-            ],
-          },
-          {
-            id: "midterm-q3",
-            questionNumber: 3,
-            summary: "Apply moment generating functions to derive distribution properties",
-            totalPoints: 30,
-            criteria: [
-              { id: "midterm-q3-c1", points: 15, description: "Correct MGF derivation" },
-              { id: "midterm-q3-c2", points: 10, description: "Moments calculation from MGF" },
-              { id: "midterm-q3-c3", points: 5, description: "Distribution identification from MGF" },
-            ],
-          },
-          {
-            id: "midterm-q4",
-            questionNumber: 4,
-            summary: "Prove properties of continuous random variables using calculus",
-            totalPoints: 25,
-            criteria: [
-              { id: "midterm-q4-c1", points: 12, description: "Correct PDF/CDF relationship" },
-              { id: "midterm-q4-c2", points: 10, description: "Rigorous proof with proper notation" },
-              { id: "midterm-q4-c3", points: 3, description: "Conclusion and verification" },
-            ],
-          },
-        ],
-      },
-      students: [
-        { id: "1", name: "Alice Johnson", score: 94 },
-        { id: "2", name: "Bob Smith", score: 87 },
-        { id: "3", name: "Carol White", score: 75 },
-        { id: "4", name: "David Brown", score: 90 },
-      ],
-    },
-  ])
+  const [courseId, setCourseId] = useState<string>('1') // Default to STAT 210 course
+  const [assignments, setAssignments] = useState<Assignment[]>([])
 
   const [studentView, setStudentView] = useState<"overview" | "assignment" | "question" | "submission">("overview")
   const [selectedStudentAssignment, setSelectedStudentAssignment] = useState<DbStudentAssignment | null>(null)
@@ -230,7 +81,7 @@ export default function Page() {
   const [courses, setCourses] = useState<CourseWithAssignments[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Initialize database and load courses on component mount
+  // Initialize database and load data on component mount
   useEffect(() => {
     const initializeData = async () => {
       try {
@@ -238,11 +89,50 @@ export default function Page() {
         console.log('Initializing database...')
         await initializeDatabase()
 
+        // Load student data
         console.log('Loading courses for student...')
         const studentId = 'student_1' // In a real app, this would come from authentication
         const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
         setCourses(coursesData)
         console.log('Courses loaded:', coursesData)
+
+        // Load instructor data
+        console.log('Loading assignments for instructor...')
+        const instructorAssignments = await getAssignmentsForCourse(courseId)
+
+        // Load rubrics and student performance for each assignment
+        const formattedAssignments: Assignment[] = await Promise.all(
+          instructorAssignments.map(async (a) => {
+            // Load rubric from database
+            const rubric = await getAssignmentRubric(a.id)
+
+            // Load student performance
+            const studentPerformances = await getStudentPerformanceForAssignment(a.id, courseId)
+
+            // Convert to StudentScore type (filter out students without scores)
+            const students: StudentScore[] = studentPerformances
+              .filter(s => s.score !== undefined)
+              .map(s => ({
+                id: s.id,
+                name: s.name,
+                score: s.score!
+              }))
+
+            return {
+              id: a.id,
+              name: a.name,
+              dueDate: a.dueDate,
+              rubricBreakdown: rubric ? {
+                assignmentName: rubric.assignmentName,
+                questions: rubric.questions
+              } : undefined,
+              students
+            }
+          })
+        )
+
+        setAssignments(formattedAssignments)
+        console.log('Assignments loaded with rubrics and student data:', formattedAssignments)
       } catch (error) {
         console.error('Error initializing data:', error)
       } finally {
@@ -251,7 +141,22 @@ export default function Page() {
     }
 
     initializeData()
-  }, [])
+  }, [courseId])
+
+  // Reload student data when switching to student mode
+  useEffect(() => {
+    const reloadStudentData = async () => {
+      if (mode === "student") {
+        console.log('Reloading student data...')
+        const studentId = 'student_1'
+        const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
+        setCourses(coursesData)
+        console.log('Student data reloaded:', coursesData)
+      }
+    }
+
+    reloadStudentData()
+  }, [mode])
 
   const handleCreateAssignment = async (assignment: Assignment, rubricFile: File | null) => {
     console.log("[Page] handleCreateAssignment called")
@@ -358,7 +263,7 @@ export default function Page() {
     }
   }
 
-  const handleConfirmRubric = (updatedRubricData: RubricBreakdown) => {
+  const handleConfirmRubric = async (updatedRubricData: RubricBreakdown) => {
     console.log("[Page] handleConfirmRubric called")
     console.log("[Page] Updated rubric data:", updatedRubricData)
     console.log("[Page] Pending assignment:", pendingAssignment)
@@ -381,9 +286,47 @@ export default function Page() {
       return
     }
 
-    // Create the complete assignment with rubric data
+    // Calculate total points from rubric
+    const totalPoints = updatedRubricData.questions.reduce((sum, q) => sum + q.totalPoints, 0)
+
+    // Save assignment to database
+    console.log("[Page] Saving assignment to database...")
+    const dbAssignment = await createAssignmentInDb(
+      courseId,
+      pendingAssignment.name,
+      new Date(pendingAssignment.dueDate),
+      undefined, // description
+      totalPoints
+    )
+
+    if (!dbAssignment) {
+      console.error("[Page] Failed to save assignment to database")
+      alert("Failed to save assignment. Please try again.")
+      return
+    }
+
+    console.log("[Page] Assignment saved to database:", dbAssignment)
+
+    // Save rubric to database
+    console.log("[Page] Saving rubric to database...")
+    const savedRubric = await saveAssignmentRubric(
+      dbAssignment.id,
+      updatedRubricData.assignmentName,
+      updatedRubricData.questions
+    )
+
+    if (!savedRubric) {
+      console.error("[Page] Failed to save rubric to database")
+      alert("Assignment created but rubric failed to save. Please try again.")
+    }
+
+    console.log("[Page] Rubric saved to database:", savedRubric)
+
+    // Create the complete assignment with rubric data for UI
     const completeAssignment: Assignment = {
-      ...pendingAssignment,
+      id: dbAssignment.id,
+      name: dbAssignment.name,
+      dueDate: dbAssignment.dueDate.toISOString(),
       rubricBreakdown: updatedRubricData,
       students: [], // Start with no students
     }

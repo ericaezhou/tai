@@ -236,3 +236,27 @@ export interface PdfExtractionResult {
   confidence: number;
   error?: string;
 }
+
+// Rubric breakdown types for UI
+export interface RubricCriterion {
+  id: string;
+  points: number;
+  description: string;
+}
+
+export interface RubricQuestion {
+  id: string;
+  questionNumber: number;
+  summary: string;
+  totalPoints: number;
+  criteria: RubricCriterion[];
+}
+
+export interface AssignmentRubric {
+  id: string;
+  assignmentId: string;
+  assignmentName: string;
+  questions: RubricQuestion[];
+  createdAt: Date;
+  updatedAt: Date;
+}
