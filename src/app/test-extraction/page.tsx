@@ -43,7 +43,12 @@ export default function TestExtractionPage() {
         if (data.status === "completed") {
           return data.data;
         } else if (data.status === "failed") {
-          throw new Error(data.error || "Job failed");
+          // Include full error details if available
+          const errorMessage = data.details
+            ? `${data.error}\n\nDetails: ${JSON.stringify(data.details, null, 2)}`
+            : data.error || "Job failed";
+          console.error("Extraction job failed:", data);
+          throw new Error(errorMessage);
         }
 
         // Still processing, wait 3 seconds

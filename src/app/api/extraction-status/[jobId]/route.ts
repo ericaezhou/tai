@@ -89,11 +89,26 @@ export async function GET(
           data: result,
         });
       } else if (statusResponse.status === "FAILED") {
-        return NextResponse.json({
-          status: "failed",
-          jobId,
-          error: "Extraction job failed",
-        });
+        // Try to get error details from job result
+        try {
+          const errorDetails = await getJobResult(jobId);
+          console.error("Extraction job failed. Job details:", JSON.stringify(errorDetails, null, 2));
+          return NextResponse.json({
+            status: "failed",
+            jobId,
+            error: "Extraction job failed",
+            details: errorDetails,
+            rawStatus: statusResponse,
+          });
+        } catch (resultError) {
+          console.error("Failed to fetch job result for failed job:", resultError);
+          return NextResponse.json({
+            status: "failed",
+            jobId,
+            error: "Extraction job failed",
+            details: statusResponse,
+          });
+        }
       } else {
         return NextResponse.json({
           status: "processing",
