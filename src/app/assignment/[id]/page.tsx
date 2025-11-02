@@ -58,35 +58,48 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
             <p className="text-sm text-gray-600 mt-1">{submissions.length} total submissions</p>
           </div>
 
-          {/* Summary Section */}
-          <div className="mb-6">
-            <div className="flex items-center gap-4 mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Summary</h2>
-              <select
-                id="question-select"
-                value={selectedQuestion || ""}
-                onChange={(e) => setSelectedQuestion(e.target.value || null)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-              >
-                <option value="">Overall</option>
-                {questions.map((question) => (
-                  <option key={question.id} value={question.id}>
-                    {getQuestionDisplayName(question.id)}
-                  </option>
-                ))}
-              </select>
+          {/* Summary and Graph Section - Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* Left Column - Summary */}
+            <div className="lg:col-span-1">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Summary</h2>
+                <div className="relative">
+                  <select
+                    id="question-select"
+                    value={selectedQuestion || ""}
+                    onChange={(e) => setSelectedQuestion(e.target.value || null)}
+                    className="w-full px-4 py-2.5 text-sm font-medium border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 hover:border-gray-300 transition-colors cursor-pointer appearance-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.5em 1.5em',
+                      paddingRight: '2.5rem'
+                    }}
+                  >
+                    <option value="">📊 Overall Performance</option>
+                    {questions.map((question) => (
+                      <option key={question.id} value={question.id}>
+                        {getQuestionDisplayName(question.id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* AI-generated summary as plain text */}
+              <InsightsPanel insights={currentInsights} />
             </div>
 
-            {/* AI-generated summary as plain text */}
-            <InsightsPanel insights={currentInsights} />
+            {/* Right Column - Distribution Graph */}
+            <div className="lg:col-span-2">
+              <DistributionGraph
+                submissions={submissions}
+                selectedQuestion={selectedQuestion}
+                questions={questions}
+              />
+            </div>
           </div>
-
-          {/* Distribution Graph */}
-          <DistributionGraph
-            submissions={submissions}
-            selectedQuestion={selectedQuestion}
-            questions={questions}
-          />
 
           {/* Horizontal Divider */}
           <div className="my-8 border-t border-gray-300"></div>
