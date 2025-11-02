@@ -2,6 +2,7 @@
 // Server-side only - do not use in client components
 
 import type { ParsedDocument, UnsiloedJobStatus, UnsiloedJobResult } from "@/types";
+import { bufferToBlob } from "@/lib/ocr/utils/buffer";
 
 const BASE = process.env.UNSILOED_BASE_URL ?? "https://prod.visionapi.unsiloed.ai";
 const API_KEY = process.env.UNSILOED_API_KEY!;
@@ -37,7 +38,7 @@ export async function parseDocument(
   } = options;
 
   const form = new FormData();
-  form.set("file", new Blob([pdfBuffer], { type: "application/pdf" }), fileName);
+  form.set("file", bufferToBlob(pdfBuffer, "application/pdf"), fileName);
   form.set("use_high_resolution", String(use_high_resolution));
   form.set("segmentation_method", segmentation_method);
   form.set("ocr_mode", ocr_mode);
@@ -105,7 +106,7 @@ export async function extractData(
   fileName: string = "document.pdf"
 ): Promise<string> {
   const form = new FormData();
-  form.set("pdf_file", new Blob([pdfBuffer], { type: "application/pdf" }), fileName);
+  form.set("pdf_file", bufferToBlob(pdfBuffer, "application/pdf"), fileName);
   form.set("schema_data", schemaJson);
 
   const res = await fetch(`${BASE}/cite`, {
@@ -126,13 +127,19 @@ export async function extractData(
 /**
  * Extract tables from PDF
  * Returns a job ID for polling via getJobStatus/getJobResult
+ *
+ * NOTE: Currently disabled due to Unsiloed API bug.
+ * Error: "Unsupported parameter: 'max_tokens' is not supported with this model.
+ *         Use 'max_completion_tokens' instead."
+ * This is Unsiloed's backend issue - they need to update their /tables endpoint.
+ * Can re-enable when fixed: https://docs.unsiloed.ai/api-reference/tables
  */
 export async function extractTables(
   pdfBuffer: Buffer,
   fileName: string = "document.pdf"
 ): Promise<string> {
   const form = new FormData();
-  form.set("pdf_file", new Blob([pdfBuffer], { type: "application/pdf" }), fileName);
+  form.set("pdf_file", bufferToBlob(pdfBuffer, "application/pdf"), fileName);
 
   const res = await fetch(`${BASE}/tables`, {
     method: "POST",

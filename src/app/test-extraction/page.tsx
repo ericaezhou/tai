@@ -24,7 +24,6 @@ export default function TestExtractionPage() {
   // Submission State
   const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [submissionQuestions, setSubmissionQuestions] = useState("1,2,3,4");
-  const [extractTables, setExtractTables] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<JobStatus>("idle");
   const [submissionJobIds, setSubmissionJobIds] = useState<any>(null);
   const [submissionResults, setSubmissionResults] = useState<any>(null);
@@ -138,7 +137,6 @@ export default function TestExtractionPage() {
       const formData = new FormData();
       formData.append("pdf", submissionFile);
       formData.append("questionNumbers", submissionQuestions);
-      formData.append("extractTables", String(extractTables));
 
       const uploadRes = await fetch("/api/extract-submission", {
         method: "POST",
@@ -156,21 +154,14 @@ export default function TestExtractionPage() {
       // Poll for completion
       setSubmissionStatus("polling");
 
-      const jobs: Promise<any>[] = [
+      const [extractedData, parsedDocument] = await Promise.all([
         pollJob(jobData.extractionJobId, "extraction"),
         pollJob(jobData.parseJobId, "parse"),
-      ];
-
-      if (jobData.tablesJobId) {
-        jobs.push(pollJob(jobData.tablesJobId, "extraction"));
-      }
-
-      const [extractedData, parsedDocument, tables] = await Promise.all(jobs);
+      ]);
 
       setSubmissionResults({
         extractedData,
         parsedDocument,
-        tables: tables?.results?.tables || [],
       });
 
       setSubmissionStatus("completed");
@@ -390,20 +381,6 @@ export default function TestExtractionPage() {
                   </p>
                 </div>
 
-                {/* Extract Tables Checkbox */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    id="extractTables"
-                    type="checkbox"
-                    checked={extractTables}
-                    onChange={(e) => setExtractTables(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="extractTables" className="cursor-pointer">
-                    Extract tables (for truth tables, matrices, etc.)
-                  </Label>
-                </div>
-
                 {/* Extract Button */}
                 <Button
                   onClick={handleSubmissionExtraction}
@@ -431,9 +408,6 @@ export default function TestExtractionPage() {
                     <AlertDescription className="text-xs font-mono">
                       Extraction Job: {submissionJobIds.extractionJobId}<br />
                       Parse Job: {submissionJobIds.parseJobId}
-                      {submissionJobIds.tablesJobId && (
-                        <><br />Tables Job: {submissionJobIds.tablesJobId}</>
-                      )}
                     </AlertDescription>
                   </Alert>
                 )}

@@ -1,0 +1,79 @@
+services:
+  paddleocr:
+    build: ./paddleocr-service
+    container_name: ocr-paddleocr
+    ports:
+      - "8001:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - paddleocr-models:/root/.paddleocr
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  pix2text:
+    build: ./pix2text-service
+    container_name: ocr-pix2text
+    ports:
+      - "8002:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - pix2text-models:/root/.pix2text
+      - huggingface-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  surya:
+    build: ./surya-service
+    container_name: ocr-surya
+    ports:
+      - "8003:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - surya-models:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Optional: Redis for caching OCR results
+  redis:
+    image: redis:7-alpine
+    container_name: ocr-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  paddleocr-models:
+  pix2text-models:
+  surya-models:
+  huggingface-cache:
+  redis-data:
+
+networks:
+  default:
+    name: ocr-network

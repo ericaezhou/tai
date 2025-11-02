@@ -2,23 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   extractData,
   parseDocument,
-  extractTables,
   createSubmissionSchema,
 } from "@/lib/unsiloedClient";
+
+// Note: extractTables removed due to Unsiloed API bug
+// Error: "Unsupported parameter: 'max_tokens' is not supported with this model"
+// This is Unsiloed's backend issue - they need to update to 'max_completion_tokens'
+// Can re-enable when fixed: https://docs.unsiloed.ai/api-reference/tables
 
 /**
  * POST /api/extract-submission
  * Extract structured data from student submission PDF
  *
  * Request: FormData with 'pdf' file and 'questionNumbers' (comma-separated, e.g., "1,2,3,4")
- * Response: { extractionJobId, parseJobId, tablesJobId, message }
+ * Response: { extractionJobId, parseJobId, message }
  */
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const pdfFile = formData.get("pdf") as File;
     const questionNumbersStr = formData.get("questionNumbers") as string;
-    const extractTablesFlag = formData.get("extractTables") === "true";
 
     if (!pdfFile) {
       return NextResponse.json(
@@ -58,24 +61,15 @@ export async function POST(request: NextRequest) {
     const questionNumbers = questionNumbersStr.split(",").map((n) => n.trim());
     const submissionSchema = createSubmissionSchema(questionNumbers);
 
-    // Start extraction jobs
-    const jobs: Promise<any>[] = [
+    // Start extraction jobs (table extraction disabled - see comment at top)
+    const [extractionJobId, parseJobResponse] = await Promise.all([
       extractData(buffer, submissionSchema, pdfFile.name),
       parseDocument(buffer, pdfFile.name),
-    ];
-
-    // Optionally extract tables (for truth tables, matrices, etc.)
-    if (extractTablesFlag) {
-      jobs.push(extractTables(buffer, pdfFile.name));
-    }
-
-    const results = await Promise.all(jobs);
-    const [extractionJobId, parseJobResponse, tablesJobId] = results;
+    ]);
 
     return NextResponse.json({
       extractionJobId,
       parseJobId: parseJobResponse.job_id,
-      tablesJobId: extractTablesFlag ? tablesJobId : null,
       message: "Submission extraction started",
       quota_remaining: parseJobResponse.quota_remaining,
     });
