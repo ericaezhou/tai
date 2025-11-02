@@ -313,7 +313,7 @@ export async function seedDatabase(): Promise<void> {
     // Create questions for Assignment 4 (Data Structures Course)
     const questions4 = [
       {
-        id: '8',
+        id: '11',
         assignmentId: assignment4.id,
         name: 'Linked Lists',
         description: 'Implement linked list operations',
@@ -322,7 +322,7 @@ export async function seedDatabase(): Promise<void> {
         createdAt: new Date()
       },
       {
-        id: '9',
+        id: '12',
         assignmentId: assignment4.id,
         name: 'Trees',
         description: 'Implement tree traversal algorithms',
@@ -486,7 +486,7 @@ export async function seedDatabase(): Promise<void> {
       assignmentId: assignment1.id,
       studentId: student1.id,
       status: 'graded',
-      score: 92,
+      score: 70, // 18 + 25 + 27 = 70 out of 75
       structuredAnswer: [],
       submittedAt: new Date('2025-09-14'),
       createdAt: new Date('2025-09-14'),
@@ -494,45 +494,36 @@ export async function seedDatabase(): Promise<void> {
     };
     await db.saveStudentSubmission(submission1);
 
-    // Create question submissions for Assignment 1
+    // Create question submissions for Assignment 1 (HW1 - Probability)
+    // Total: 18 + 25 + 27 = 70 out of 75 points
     const questionSubmissions1 = [
       {
         id: 'qs_1',
         submissionId: submission1.id,
-        questionId: '1',
+        questionId: '1', // Q1: Basic Probability (20 points)
         pointsAwarded: 18,
-        feedback: 'Great implementation! Minor issue with edge case handling for empty arrays.',
-        submissionContent: '/handwritten-binary-search-algorithm.jpg',
+        feedback: 'Great work! Minor error in sample space enumeration.',
+        submissionContent: '/probability-sample-space.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
         id: 'qs_2',
         submissionId: submission1.id,
-        questionId: '2',
+        questionId: '2', // Q2: Conditional Probability (25 points)
         pointsAwarded: 25,
-        feedback: 'Perfect analysis of the algorithm\'s time complexity.',
-        submissionContent: '/time-complexity-analysis-notes.jpg',
+        feedback: 'Perfect application of conditional probability formula.',
+        submissionContent: '/conditional-probability-work.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
         id: 'qs_3',
         submissionId: submission1.id,
-        questionId: '3',
-        pointsAwarded: 22,
-        feedback: 'Good understanding, but missed the space complexity discussion.',
-        submissionContent: '/data-structures-diagram.png',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: 'qs_4',
-        submissionId: submission1.id,
-        questionId: '4',
+        questionId: '3', // Q3: Bayes Theorem (30 points)
         pointsAwarded: 27,
-        feedback: 'Excellent recursive solution. Could be optimized with memoization.',
-        submissionContent: '/recursive-function-code.jpg',
+        feedback: 'Excellent Bayes theorem application. Minor calculation error in final step.',
+        submissionContent: '/bayes-theorem-solution.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -556,12 +547,13 @@ export async function seedDatabase(): Promise<void> {
     await db.saveStudentSubmission(submission2);
 
     // Assignment 3 (Midterm) - Graded for student1
+    // Total: 18 + 23 + 28 + 23 = 92 out of 100
     const submission3: StudentAssignmentSubmission = {
       id: 'sub_3',
       assignmentId: assignment3.id,
       studentId: student1.id,
       status: 'graded',
-      score: 88,
+      score: 92, // 18 + 23 + 28 + 23 = 92 out of 100
       structuredAnswer: [],
       submittedAt: new Date('2025-11-07'),
       createdAt: new Date('2025-11-07'),
@@ -569,35 +561,45 @@ export async function seedDatabase(): Promise<void> {
     };
     await db.saveStudentSubmission(submission3);
 
-    // Create question submissions for Assignment 3
+    // Create question submissions for Assignment 3 (Midterm)
     const questionSubmissions3 = [
       {
         id: 'qs_5',
         submissionId: submission3.id,
-        questionId: '5',
-        pointsAwarded: 45,
-        feedback: 'Strong implementation with good code structure.',
-        submissionContent: '/project-code-implementation.jpg',
+        questionId: '7', // Q1: Law of Total Probability (20 points)
+        pointsAwarded: 18,
+        feedback: 'Good application of law of total probability. Minor error in partition.',
+        submissionContent: '/law-of-total-probability.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
         id: 'qs_6',
         submissionId: submission3.id,
-        questionId: '6',
-        pointsAwarded: 20,
-        feedback: 'Documentation is clear but could include more examples.',
-        submissionContent: '/project-documentation.jpg',
+        questionId: '8', // Q2: Joint Distributions (25 points)
+        pointsAwarded: 23,
+        feedback: 'Strong work on joint distributions. Marginal calculation needs clarification.',
+        submissionContent: '/joint-distributions.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
         id: 'qs_7',
         submissionId: submission3.id,
-        questionId: '7',
+        questionId: '9', // Q3: Moment Generating Functions (30 points)
+        pointsAwarded: 28,
+        feedback: 'Excellent MGF derivation. Minor arithmetic error in moment calculation.',
+        submissionContent: '/mgf-work.jpg',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'qs_8',
+        submissionId: submission3.id,
+        questionId: '10', // Q4: Continuous Random Variables (25 points)
         pointsAwarded: 23,
-        feedback: 'Comprehensive test coverage.',
-        submissionContent: '/test-cases-code.jpg',
+        feedback: 'Good proof. Could be more rigorous in notation.',
+        submissionContent: '/continuous-rv-proof.jpg',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -624,9 +626,9 @@ export async function seedDatabase(): Promise<void> {
     // Create question submissions for Assignment 4
     const questionSubmissions4 = [
       {
-        id: 'qs_8',
+        id: 'qs_9',
         submissionId: submission4.id,
-        questionId: '8',
+        questionId: '11',
         pointsAwarded: 48,
         feedback: 'Excellent work on linked list operations.',
         submissionContent: '/linked-list-implementation.jpg',
@@ -634,9 +636,9 @@ export async function seedDatabase(): Promise<void> {
         updatedAt: new Date()
       },
       {
-        id: 'qs_9',
+        id: 'qs_10',
         submissionId: submission4.id,
-        questionId: '9',
+        questionId: '12',
         pointsAwarded: 47,
         feedback: 'Perfect tree traversal implementation.',
         submissionContent: '/tree-traversal-code.jpg',
