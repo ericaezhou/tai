@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Upload } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import type { Assignment } from "@/app/page"
 
@@ -17,6 +17,27 @@ type AssignmentDetailProps = {
 export function AssignmentDetail({ assignment, onBack, onPublishGrades }: AssignmentDetailProps) {
   const students = assignment.students || []
 
+  // Helper function to get color based on score percentage
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600"
+    if (score >= 60) return "text-yellow-600"
+    return "text-red-600"
+  }
+
+  // Helper function to get arrow color based on score percentage
+  const getArrowColor = (score: number) => {
+    if (score >= 80) return "text-green-600"
+    if (score >= 60) return "text-yellow-600"
+    return "text-red-600"
+  }
+
+  // Helper function to get bar fill color based on range
+  const getBarFill = (range: string) => {
+    if (range === "80-89" || range === "90-100") return "hsl(142, 76%, 36%)" // green
+    if (range === "60-69" || range === "70-79") return "hsl(45, 93%, 47%)" // yellow
+    return "hsl(0, 84%, 60%)" // red
+  }
+
   // Calculate statistics
   const scores = students.map((s) => s.score)
   const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
@@ -24,13 +45,13 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
   const min = scores.length > 0 ? Math.min(...scores) : 0
   const median = scores.length > 0 ? [...scores].sort((a, b) => a - b)[Math.floor(scores.length / 2)] : 0
 
-  // Create distribution data
+  // Create distribution data with colors
   const distribution = [
-    { range: "0-59", count: scores.filter((s) => s < 60).length },
-    { range: "60-69", count: scores.filter((s) => s >= 60 && s < 70).length },
-    { range: "70-79", count: scores.filter((s) => s >= 70 && s < 80).length },
-    { range: "80-89", count: scores.filter((s) => s >= 80 && s < 90).length },
-    { range: "90-100", count: scores.filter((s) => s >= 90).length },
+    { range: "0-59", count: scores.filter((s) => s < 60).length, fill: getBarFill("0-59") },
+    { range: "60-69", count: scores.filter((s) => s >= 60 && s < 70).length, fill: getBarFill("60-69") },
+    { range: "70-79", count: scores.filter((s) => s >= 70 && s < 80).length, fill: getBarFill("70-79") },
+    { range: "80-89", count: scores.filter((s) => s >= 80 && s < 90).length, fill: getBarFill("80-89") },
+    { range: "90-100", count: scores.filter((s) => s >= 90).length, fill: getBarFill("90-100") },
   ]
 
   // Identify problems
@@ -64,21 +85,21 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Average Score</CardDescription>
-            <CardTitle className="text-3xl">{average.toFixed(1)}</CardTitle>
+            <CardTitle className={`text-3xl ${getScoreColor(average)}`}>{average.toFixed(1)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Median Score</CardDescription>
-            <CardTitle className="text-3xl">{median}</CardTitle>
+            <CardTitle className={`text-3xl ${getScoreColor(median)}`}>{median}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Highest Score</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
-              {max}
-              <TrendingUp className="h-5 w-5 text-chart-4" />
+              <span className={getScoreColor(max)}>{max}</span>
+              <TrendingUp className={`h-5 w-5 ${getArrowColor(max)}`} />
             </CardTitle>
           </CardHeader>
         </Card>
@@ -86,8 +107,8 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
           <CardHeader className="pb-3">
             <CardDescription>Lowest Score</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
-              {min}
-              <TrendingDown className="h-5 w-5 text-destructive" />
+              <span className={getScoreColor(min)}>{min}</span>
+              <TrendingDown className={`h-5 w-5 ${getArrowColor(min)}`} />
             </CardTitle>
           </CardHeader>
         </Card>
@@ -115,7 +136,11 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
                   <XAxis dataKey="range" className="text-xs" />
                   <YAxis className="text-xs" />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {distribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -137,33 +162,48 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
               </p>
             </div>
 
-            {(failingCount > 0 || lowAverage) && (
-              <div className="border-l-4 border-destructive bg-destructive/10 p-4 rounded">
+            {average < 60 && (
+              <div className="border-l-4 border-red-600 bg-red-50 p-4 rounded">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-destructive mb-1">Issues Detected</h4>
-                    <ul className="text-sm space-y-1 text-destructive/90">
+                    <h4 className="font-semibold text-red-600 mb-1">Warning: Low Performance</h4>
+                    <ul className="text-sm space-y-1 text-red-600/90">
+                      <li>• Class average is below 60% - immediate attention recommended</li>
                       {failingCount > 0 && (
                         <li>
                           • {failingCount} student{failingCount > 1 ? "s" : ""} scored below 60
                         </li>
                       )}
-                      {lowAverage && <li>• Class average is below 70</li>}
                     </ul>
                   </div>
                 </div>
               </div>
             )}
 
-            {!failingCount && !lowAverage && (
-              <div className="border-l-4 border-chart-4 bg-chart-4/10 p-4 rounded">
+            {average >= 60 && average < 80 && (
+              <div className="border-l-4 border-yellow-600 bg-yellow-50 p-4 rounded">
                 <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-chart-4 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-chart-4 mb-1">Strong Performance</h4>
-                    <p className="text-sm text-chart-4/90">
-                      No significant issues detected. Students are performing well overall.
+                    <h4 className="font-semibold text-yellow-600 mb-1">Average Performance</h4>
+                    <p className="text-sm text-yellow-600/90">
+                      Class average is moderate. Consider reviewing challenging topics to help students improve.
+                      {failingCount > 0 && ` ${failingCount} student${failingCount > 1 ? "s" : ""} may need additional support.`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {average >= 80 && (
+              <div className="border-l-4 border-green-600 bg-green-50 p-4 rounded">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-green-600 mb-1">Strong Performance</h4>
+                    <p className="text-sm text-green-600/90">
+                      Excellent work! Students are performing well overall with a class average of {average.toFixed(1)}%.
                     </p>
                   </div>
                 </div>
@@ -193,19 +233,7 @@ export function AssignmentDetail({ assignment, onBack, onPublishGrades }: Assign
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell className="text-right">
-                    <span
-                      className={`font-semibold ${
-                        student.score >= 90
-                          ? "text-chart-4"
-                          : student.score >= 80
-                            ? "text-chart-2"
-                            : student.score >= 70
-                              ? "text-chart-3"
-                              : student.score >= 60
-                                ? "text-chart-5"
-                                : "text-destructive"
-                      }`}
-                    >
+                    <span className={`font-semibold ${getScoreColor(student.score)}`}>
                       {student.score}
                     </span>
                   </TableCell>
