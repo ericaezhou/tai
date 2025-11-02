@@ -78,7 +78,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
                       paddingRight: '2.5rem'
                     }}
                   >
-                    <option value="">📊 Overall Performance</option>
+                    <option value="">Overall Performance</option>
                     {questions.map((question) => (
                       <option key={question.id} value={question.id}>
                         {getQuestionDisplayName(question.id)}
