@@ -67,32 +67,159 @@ export default function Page() {
   const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: "1",
-      name: "Midterm Exam",
-      dueDate: "2025-03-15",
+      name: "HW1 - Probability Foundations",
+      dueDate: "2025-09-15",
+      rubricBreakdown: {
+        assignmentName: "HW1 - Probability Foundations",
+        questions: [
+          {
+            id: "hw1-q1",
+            questionNumber: 1,
+            summary: "Calculate probability using basic counting principles and sample spaces",
+            totalPoints: 20,
+            criteria: [
+              { id: "hw1-q1-c1", points: 8, description: "Correct sample space identification" },
+              { id: "hw1-q1-c2", points: 7, description: "Accurate probability calculation" },
+              { id: "hw1-q1-c3", points: 5, description: "Clear explanation of reasoning" },
+            ],
+          },
+          {
+            id: "hw1-q2",
+            questionNumber: 2,
+            summary: "Apply conditional probability and independence concepts",
+            totalPoints: 25,
+            criteria: [
+              { id: "hw1-q2-c1", points: 12, description: "Correct application of conditional probability formula" },
+              { id: "hw1-q2-c2", points: 8, description: "Independence verification" },
+              { id: "hw1-q2-c3", points: 5, description: "Work shown and justified" },
+            ],
+          },
+          {
+            id: "hw1-q3",
+            questionNumber: 3,
+            summary: "Use Bayes' theorem to solve real-world probability problems",
+            totalPoints: 30,
+            criteria: [
+              { id: "hw1-q3-c1", points: 15, description: "Correct Bayes' theorem setup" },
+              { id: "hw1-q3-c2", points: 10, description: "Accurate numerical computation" },
+              { id: "hw1-q3-c3", points: 5, description: "Interpretation of results" },
+            ],
+          },
+        ],
+      },
       students: [
         { id: "1", name: "Alice Johnson", score: 92 },
         { id: "2", name: "Bob Smith", score: 85 },
         { id: "3", name: "Carol White", score: 78 },
         { id: "4", name: "David Brown", score: 88 },
-        { id: "5", name: "Eve Davis", score: 95 },
-        { id: "6", name: "Frank Miller", score: 72 },
-        { id: "7", name: "Grace Lee", score: 90 },
-        { id: "8", name: "Henry Wilson", score: 83 },
       ],
     },
     {
       id: "2",
-      name: "Final Project",
-      dueDate: "2025-05-20",
+      name: "HW2 - Random Variables",
+      dueDate: "2025-10-15",
+      rubricBreakdown: {
+        assignmentName: "HW2 - Random Variables",
+        questions: [
+          {
+            id: "hw2-q1",
+            questionNumber: 1,
+            summary: "Derive probability mass functions for discrete random variables",
+            totalPoints: 25,
+            criteria: [
+              { id: "hw2-q1-c1", points: 12, description: "Correct PMF derivation" },
+              { id: "hw2-q1-c2", points: 8, description: "Verification that probabilities sum to 1" },
+              { id: "hw2-q1-c3", points: 5, description: "Clear notation and presentation" },
+            ],
+          },
+          {
+            id: "hw2-q2",
+            questionNumber: 2,
+            summary: "Calculate expected value and variance for random variables",
+            totalPoints: 30,
+            criteria: [
+              { id: "hw2-q2-c1", points: 15, description: "Correct expected value calculation" },
+              { id: "hw2-q2-c2", points: 12, description: "Correct variance calculation" },
+              { id: "hw2-q2-c3", points: 3, description: "Units and interpretation" },
+            ],
+          },
+          {
+            id: "hw2-q3",
+            questionNumber: 3,
+            summary: "Apply common probability distributions (Binomial, Poisson, Geometric)",
+            totalPoints: 20,
+            criteria: [
+              { id: "hw2-q3-c1", points: 10, description: "Correct distribution identification" },
+              { id: "hw2-q3-c2", points: 10, description: "Accurate parameter estimation and calculation" },
+            ],
+          },
+        ],
+      },
       students: [
         { id: "1", name: "Alice Johnson", score: 88 },
         { id: "2", name: "Bob Smith", score: 91 },
-        { id: "3", name: "Carol White", score: 85 },
+        { id: "3", name: "Carol White", score: 82 },
         { id: "4", name: "David Brown", score: 79 },
-        { id: "5", name: "Eve Davis", score: 93 },
-        { id: "6", name: "Frank Miller", score: 76 },
-        { id: "7", name: "Grace Lee", score: 87 },
-        { id: "8", name: "Henry Wilson", score: 90 },
+      ],
+    },
+    {
+      id: "3",
+      name: "Midterm Exam",
+      dueDate: "2025-11-08",
+      rubricBreakdown: {
+        assignmentName: "Midterm Exam",
+        questions: [
+          {
+            id: "midterm-q1",
+            questionNumber: 1,
+            summary: "Solve complex problems using law of total probability",
+            totalPoints: 20,
+            criteria: [
+              { id: "midterm-q1-c1", points: 10, description: "Correct partition identification" },
+              { id: "midterm-q1-c2", points: 8, description: "Accurate application of law of total probability" },
+              { id: "midterm-q1-c3", points: 2, description: "Final answer correctness" },
+            ],
+          },
+          {
+            id: "midterm-q2",
+            questionNumber: 2,
+            summary: "Analyze joint probability distributions and marginal distributions",
+            totalPoints: 25,
+            criteria: [
+              { id: "midterm-q2-c1", points: 12, description: "Correct joint distribution calculation" },
+              { id: "midterm-q2-c2", points: 10, description: "Accurate marginal distributions" },
+              { id: "midterm-q2-c3", points: 3, description: "Covariance and correlation analysis" },
+            ],
+          },
+          {
+            id: "midterm-q3",
+            questionNumber: 3,
+            summary: "Apply moment generating functions to derive distribution properties",
+            totalPoints: 30,
+            criteria: [
+              { id: "midterm-q3-c1", points: 15, description: "Correct MGF derivation" },
+              { id: "midterm-q3-c2", points: 10, description: "Moments calculation from MGF" },
+              { id: "midterm-q3-c3", points: 5, description: "Distribution identification from MGF" },
+            ],
+          },
+          {
+            id: "midterm-q4",
+            questionNumber: 4,
+            summary: "Prove properties of continuous random variables using calculus",
+            totalPoints: 25,
+            criteria: [
+              { id: "midterm-q4-c1", points: 12, description: "Correct PDF/CDF relationship" },
+              { id: "midterm-q4-c2", points: 10, description: "Rigorous proof with proper notation" },
+              { id: "midterm-q4-c3", points: 3, description: "Conclusion and verification" },
+            ],
+          },
+        ],
+      },
+      students: [
+        { id: "1", name: "Alice Johnson", score: 94 },
+        { id: "2", name: "Bob Smith", score: 87 },
+        { id: "3", name: "Carol White", score: 75 },
+        { id: "4", name: "David Brown", score: 90 },
       ],
     },
   ])
@@ -349,7 +476,7 @@ export default function Page() {
       ) : mode === "ta" ? (
         <div className="flex min-h-screen bg-gray-50">
           <Sidebar
-            courseName="CS 101: Data Structures"
+            courseName="STAT 210: Probability Theory"
             assignments={assignments}
             currentAssignmentId={view === "detail" || view === "rubric" ? selectedAssignment?.id : undefined}
             onSelectAssignment={(assignment) => {
