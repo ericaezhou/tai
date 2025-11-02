@@ -393,6 +393,40 @@ export default function Page() {
         const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
         setCourses(coursesData)
 
+        // Also refresh instructor view data so the new submission appears
+        console.log('[handleSubmitAssignment] Refreshing instructor view data...')
+        const instructorAssignments = await getAssignmentsForCourse(courseId)
+
+        // Reload rubrics and student performance for each assignment
+        const formattedAssignments: Assignment[] = await Promise.all(
+          instructorAssignments.map(async (a) => {
+            const rubric = await getAssignmentRubric(a.id)
+            const studentPerformances = await getStudentPerformanceForAssignment(a.id, courseId)
+
+            const students: StudentScore[] = studentPerformances
+              .filter(s => s.score !== undefined)
+              .map(s => ({
+                id: s.id,
+                name: s.name,
+                score: s.score!
+              }))
+
+            return {
+              id: a.id,
+              name: a.name,
+              dueDate: a.dueDate,
+              rubricBreakdown: rubric ? {
+                assignmentName: rubric.assignmentName,
+                questions: rubric.questions
+              } : undefined,
+              students
+            }
+          })
+        )
+
+        setAssignments(formattedAssignments)
+        console.log('[handleSubmitAssignment] Instructor view data refreshed')
+
         alert("Assignment submitted successfully!")
         setStudentView("overview")
       } else {

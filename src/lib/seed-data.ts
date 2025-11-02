@@ -213,7 +213,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '1',
         assignmentId: assignment1.id,
-        name: 'Question 1: Basic Probability',
+        name: 'Basic Probability',
         description: 'Calculate probability using basic counting principles and sample spaces',
         totalPoints: 20,
         orderIndex: 0,
@@ -222,7 +222,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '2',
         assignmentId: assignment1.id,
-        name: 'Question 2: Conditional Probability',
+        name: 'Conditional Probability',
         description: 'Apply conditional probability and independence concepts',
         totalPoints: 25,
         orderIndex: 1,
@@ -231,7 +231,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '3',
         assignmentId: assignment1.id,
-        name: 'Question 3: Bayes Theorem',
+        name: 'Bayes Theorem',
         description: 'Use Bayes theorem to solve real-world probability problems',
         totalPoints: 30,
         orderIndex: 2,
@@ -248,7 +248,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '4',
         assignmentId: assignment2.id,
-        name: 'Question 1: PMF Derivation',
+        name: 'PMF Derivation',
         description: 'Derive probability mass functions for discrete random variables',
         totalPoints: 25,
         orderIndex: 0,
@@ -257,7 +257,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '5',
         assignmentId: assignment2.id,
-        name: 'Question 2: Expected Value & Variance',
+        name: 'Expected Value & Variance',
         description: 'Calculate expected value and variance for random variables',
         totalPoints: 30,
         orderIndex: 1,
@@ -266,7 +266,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '6',
         assignmentId: assignment2.id,
-        name: 'Question 3: Probability Distributions',
+        name: 'Probability Distributions',
         description: 'Apply common probability distributions (Binomial, Poisson, Geometric)',
         totalPoints: 20,
         orderIndex: 2,
@@ -283,7 +283,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '7',
         assignmentId: assignment3.id,
-        name: 'Question 1: Law of Total Probability',
+        name: 'Law of Total Probability',
         description: 'Solve complex problems using law of total probability',
         totalPoints: 20,
         orderIndex: 0,
@@ -292,7 +292,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '8',
         assignmentId: assignment3.id,
-        name: 'Question 2: Joint Distributions',
+        name: 'Joint Distributions',
         description: 'Analyze joint probability distributions and marginal distributions',
         totalPoints: 25,
         orderIndex: 1,
@@ -301,7 +301,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '9',
         assignmentId: assignment3.id,
-        name: 'Question 3: Moment Generating Functions',
+        name: 'Moment Generating Functions',
         description: 'Apply moment generating functions to derive distribution properties',
         totalPoints: 30,
         orderIndex: 2,
@@ -310,7 +310,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '10',
         assignmentId: assignment3.id,
-        name: 'Question 4: Continuous Random Variables',
+        name: 'Continuous Random Variables',
         description: 'Prove properties of continuous random variables using calculus',
         totalPoints: 25,
         orderIndex: 3,
@@ -327,7 +327,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '10b',
         assignmentId: assignment3b.id,
-        name: 'Question 1: Uniform Distribution',
+        name: 'Uniform Distribution',
         description: 'Analyze uniform continuous distributions and calculate probabilities',
         totalPoints: 20,
         orderIndex: 0,
@@ -336,7 +336,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '10c',
         assignmentId: assignment3b.id,
-        name: 'Question 2: Exponential Distribution',
+        name: 'Exponential Distribution',
         description: 'Apply exponential distribution to model waiting times',
         totalPoints: 25,
         orderIndex: 1,
@@ -345,7 +345,7 @@ export async function seedDatabase(): Promise<void> {
       {
         id: '10d',
         assignmentId: assignment3b.id,
-        name: 'Question 3: Normal Distribution',
+        name: 'Normal Distribution',
         description: 'Use normal distribution and standard normal tables',
         totalPoints: 35,
         orderIndex: 2,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -111,9 +111,8 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
               </TableHeader>
               <TableBody>
                 {assignment.questions.map((question, index) => (
-                  <>
+                  <Fragment key={question.id}>
                     <TableRow
-                      key={question.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => toggleQuestion(question.id)}
                     >
@@ -180,7 +179,7 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

@@ -11,6 +11,133 @@ import type {
   RubricQuestion
 } from '@/types';
 
+// Mock grading function that generates scores aligned with the assignment rubric
+async function mockGradeAssignment(assignmentId: string, studentId: string): Promise<{
+  success: boolean;
+  error?: string;
+  gradingResults?: {
+    totalScore: number;
+    maxScore: number;
+    questionSubmissions: QuestionSubmission[];
+  };
+}> {
+  try {
+    const assignment = await db.getAssignment(assignmentId);
+    const questions = await db.getAssignmentQuestions(assignmentId);
+    const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
+    const rubric = await db.getAssignmentRubric(assignmentId);
+
+    if (!submission) {
+      return {
+        success: false,
+        error: 'Submission not found',
+      };
+    }
+
+    // Generate mock scores for each question
+    let totalScore = 0;
+    const questionSubmissions: QuestionSubmission[] = [];
+
+    for (const question of questions) {
+      let pointsAwarded = 0;
+      let feedback = '';
+
+      // Check if there's a rubric for this assignment
+      if (rubric && rubric.questions) {
+        // Find the corresponding rubric question (match by question number)
+        const rubricQuestion = rubric.questions.find(
+          rq => rq.questionNumber === question.orderIndex + 1
+        );
+
+        if (rubricQuestion && rubricQuestion.criteria) {
+          // Generate scores for each criterion in the rubric
+          const criteriaFeedback: string[] = [];
+
+          for (const criterion of rubricQuestion.criteria) {
+            // Randomly award between 70-100% of the criterion points
+            const minScore = Math.floor(criterion.points * 0.7);
+            const maxScore = criterion.points;
+            const criterionScore = Math.floor(Math.random() * (maxScore - minScore + 1)) + minScore;
+
+            pointsAwarded += criterionScore;
+
+            // Generate criterion-specific feedback
+            const percentage = (criterionScore / criterion.points) * 100;
+            let performanceLevel = '';
+            if (percentage >= 95) {
+              performanceLevel = 'Excellent';
+            } else if (percentage >= 85) {
+              performanceLevel = 'Very good';
+            } else if (percentage >= 75) {
+              performanceLevel = 'Good';
+            } else {
+              performanceLevel = 'Satisfactory';
+            }
+
+            criteriaFeedback.push(
+              `• ${criterion.description}: ${criterionScore}/${criterion.points} - ${performanceLevel}`
+            );
+          }
+
+          // Compile feedback for the question with question number
+          feedback = `Question ${question.orderIndex + 1}: ${question.name}\n\nRubric Breakdown:\n${criteriaFeedback.join('\n')}\n\nTotal: ${pointsAwarded}/${rubricQuestion.totalPoints}`;
+        } else {
+          // Fallback if rubric question not found
+          const minScore = Math.floor(question.totalPoints * 0.7);
+          pointsAwarded = Math.floor(Math.random() * (question.totalPoints - minScore + 1)) + minScore;
+          feedback = `Question ${question.orderIndex + 1}: ${question.name}\n\nYou demonstrated good understanding.\n\nScore: ${pointsAwarded}/${question.totalPoints}`;
+        }
+      } else {
+        // Fallback if no rubric exists for the assignment
+        const minScore = Math.floor(question.totalPoints * 0.7);
+        pointsAwarded = Math.floor(Math.random() * (question.totalPoints - minScore + 1)) + minScore;
+        feedback = `Question ${question.orderIndex + 1}: ${question.name}\n\nYou demonstrated good understanding.\n\nScore: ${pointsAwarded}/${question.totalPoints}`;
+      }
+
+      const questionSubmission: QuestionSubmission = {
+        id: generateId('qs_'),
+        submissionId: submission.id,
+        questionId: question.id,
+        pointsAwarded,
+        feedback,
+        submissionContent: submission.structuredAnswer.find(ans => ans.questionNumber === question.orderIndex + 1)?.content || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await db.saveQuestionSubmission(questionSubmission);
+      questionSubmissions.push(questionSubmission);
+      totalScore += pointsAwarded;
+    }
+
+    // Update the main submission with total score and graded status
+    const updatedSubmission: StudentAssignmentSubmission = {
+      ...submission,
+      score: totalScore,
+      status: 'graded',
+      updatedAt: new Date(),
+    };
+
+    await db.saveStudentSubmission(updatedSubmission);
+
+    return {
+      success: true,
+      gradingResults: {
+        totalScore,
+        maxScore: questions.reduce((sum, q) => sum + q.totalPoints, 0),
+        questionSubmissions,
+      },
+    };
+
+  } catch (error) {
+    console.error('Error in mock grading:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
 // Types for the page components (matching existing structure)
 export type StudentAssignment = {
   id: string;
@@ -186,10 +313,10 @@ export async function submitAssignment(
       await db.saveSubmissionFile(fileData);
     }
 
-    // Automatically grade the assignment after submission
-    console.log('Automatically grading assignment after submission...');
+    // Automatically grade the assignment after submission using mock grading
+    console.log('Automatically grading assignment after submission (using mock grading)...');
     try {
-      const gradingResult = await gradeAssignment(assignmentId, studentId);
+      const gradingResult = await mockGradeAssignment(assignmentId, studentId);
       if (gradingResult.success) {
         console.log('Assignment graded successfully:', gradingResult);
       } else {
@@ -317,7 +444,7 @@ export async function getAssignmentsForCourse(courseId: string): Promise<Instruc
         name: assignment.name,
         dueDate: assignment.dueDate.toISOString(),
         description: assignment.description,
-        totalPoints: assignment.totalPoints,
+        totalPoints: assignment.totalPoints || 0,
         questionCount: questions.length
       });
     }
@@ -382,6 +509,27 @@ export async function saveAssignmentRubric(
     };
 
     await db.saveAssignmentRubric(rubric);
+
+    // Also create AssignmentQuestion entries for each question in the rubric
+    // This is needed for the grading function to work properly
+    console.log('[saveAssignmentRubric] Creating assignment questions from rubric...');
+    for (let i = 0; i < questions.length; i++) {
+      const rubricQuestion = questions[i];
+      const assignmentQuestion: AssignmentQuestion = {
+        id: generateId('question_'),
+        assignmentId,
+        name: rubricQuestion.summary,
+        description: rubricQuestion.summary,
+        totalPoints: rubricQuestion.totalPoints,
+        orderIndex: i,
+        createdAt: new Date()
+      };
+
+      await db.saveAssignmentQuestion(assignmentQuestion);
+      console.log(`[saveAssignmentRubric] Created question ${i + 1}:`, assignmentQuestion.name);
+    }
+    console.log('[saveAssignmentRubric] All assignment questions created');
+
     return rubric;
   } catch (error) {
     console.error('Error saving assignment rubric:', error);
