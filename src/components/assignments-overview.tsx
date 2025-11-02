@@ -1,18 +1,26 @@
 "use client"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, FileText } from "lucide-react"
+import { Plus, FileText, GraduationCap } from "lucide-react"
 import type { Assignment } from "@/app/page"
 
 type AssignmentsOverviewProps = {
   assignments: Assignment[]
   onCreateNew: () => void
+  onSelectAssignment: (assignment: Assignment) => void
+  mode: "ta" | "student"
+  onToggleMode: () => void
 }
 
-export function AssignmentsOverview({ assignments, onCreateNew }: AssignmentsOverviewProps) {
+export function AssignmentsOverview({
+  assignments,
+  onCreateNew,
+  onSelectAssignment,
+  mode,
+  onToggleMode,
+}: AssignmentsOverviewProps) {
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
@@ -20,10 +28,16 @@ export function AssignmentsOverview({ assignments, onCreateNew }: AssignmentsOve
           <h1 className="text-4xl font-bold tracking-tight text-balance">TA Dashboard</h1>
           <p className="text-muted-foreground mt-2">Manage assignments and track student performance</p>
         </div>
-        <Button onClick={onCreateNew} size="lg" className="gap-2">
-          <Plus className="h-5 w-5" />
-          Create Assignment
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={onToggleMode} variant="outline" size="lg" className="gap-2 bg-transparent">
+            <GraduationCap className="h-5 w-5" />
+            Switch to Student
+          </Button>
+          <Button onClick={onCreateNew} size="lg" className="gap-2">
+            <Plus className="h-5 w-5" />
+            Create Assignment
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -51,23 +65,17 @@ export function AssignmentsOverview({ assignments, onCreateNew }: AssignmentsOve
               </TableHeader>
               <TableBody>
                 {assignments.map((assignment) => (
-                  <TableRow key={assignment.id} className="cursor-pointer hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      <Link href={`/assignment/${assignment.id}`} className="block">
-                        {assignment.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link href={`/assignment/${assignment.id}`} className="block">
-                        {new Date(assignment.dueDate).toLocaleDateString()}
-                      </Link>
-                    </TableCell>
+                  <TableRow
+                    key={assignment.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => onSelectAssignment(assignment)}
+                  >
+                    <TableCell className="font-medium">{assignment.name}</TableCell>
+                    <TableCell>{new Date(assignment.dueDate).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/assignment/${assignment.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
+                      <Button variant="ghost" size="sm">
+                        View Details
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
