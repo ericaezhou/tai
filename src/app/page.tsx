@@ -337,6 +337,13 @@ export default function Page() {
     setAssignments((prev) => [...prev, completeAssignment])
     console.log("[Page] Assignment added to list")
 
+    // Reload student data so it shows up when switching to student mode
+    console.log("[Page] Reloading student data to include new assignment...")
+    const studentId = 'student_1'
+    const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
+    setCourses(coursesData)
+    console.log("[Page] Student data reloaded with new assignment")
+
     // Clear pending assignment
     setPendingAssignment(null)
 
