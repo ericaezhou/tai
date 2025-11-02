@@ -27,6 +27,14 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
       return newSet
     })
   }
+
+  const formatFeedbackText = (text: string) => {
+    // Add line breaks before bullet points and format text
+    return text
+      .replace(/([.!?])\s*•/g, '$1\n\n•') // Add line breaks before bullet points
+      .replace(/^•/gm, '• ') // Ensure proper spacing after bullet points
+      .trim()
+  }
   if (!assignment.questions || assignment.status === "ungraded") {
     return (
       <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -101,12 +109,12 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
             <CardDescription>Click on a question to view detailed feedback</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
-                  <TableHead>Question</TableHead>
-                  <TableHead className="text-right">Points</TableHead>
+                  <TableHead className="break-words">Question</TableHead>
+                  <TableHead className="text-right w-20">Points</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -123,10 +131,10 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
                           <ChevronRight className="h-4 w-4" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium break-words">
                         {question.name}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right w-20">
                         <span
                           className={
                             question.pointsAwarded === question.totalPoints
@@ -169,7 +177,7 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
                               </div>
                               {question.feedback ? (
                                 <div className="bg-background p-4 rounded-md border">
-                                  <p className="text-sm">{question.feedback}</p>
+                                  <p className="text-sm whitespace-pre-wrap">{formatFeedbackText(question.feedback)}</p>
                                 </div>
                               ) : (
                                 <p className="text-muted-foreground italic text-sm">No feedback provided</p>
