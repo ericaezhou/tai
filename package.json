@@ -16,12 +16,12 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ericaezhou/tai/issues"
   },
   "homepage": "https://github.com/ericaezhou/tai#readme",
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
