@@ -4,6 +4,7 @@
 import type { OCRResult, ConsensusResult, AIValidationResult } from '@/types/ocr';
 import Anthropic from '@anthropic-ai/sdk';
 import { containsMath } from './utils';
+import { weightedVote } from './weighted';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!
@@ -113,7 +114,6 @@ Respond in JSON format:
     console.error('AI arbiter failed:', error);
 
     // Fallback to weighted voting if AI fails
-    const { weightedVote } = await import('./weighted');
     const fallbackResult = weightedVote(results);
 
     return {

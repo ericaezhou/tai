@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# documentation files (newly created)
+REFACTORING_PLAN.md
+PIPELINE_DOCUMENTATION.md
+QUICK_START_OCR.md
+ocr-services/README.md
+tmp/

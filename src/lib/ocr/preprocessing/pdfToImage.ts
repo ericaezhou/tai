@@ -1,45 +1,26 @@
 // PDF to Image Conversion
 // Converts PDF pages to images for OCR processing
+//
+// Uses PyMuPDF (fitz) via Docker for reliable PDF rendering.
+// The pdfjs-dist library has issues rendering text in Node.js environments.
 
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { createCanvas, Image } from 'canvas';
-import sharp from 'sharp';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
-// NodeCanvasFactory for PDF.js to create canvas instances in Node.js
-// This is required for PDFs that contain embedded images
-class NodeCanvasFactory {
-  create(width: number, height: number) {
-    const canvas = createCanvas(width, height);
-    const context = canvas.getContext('2d');
-    return { canvas, context };
-  }
-
-  reset(canvasAndContext: any, width: number, height: number) {
-    canvasAndContext.canvas.width = width;
-    canvasAndContext.canvas.height = height;
-  }
-
-  destroy(canvasAndContext: any) {
-    canvasAndContext.canvas.width = 0;
-    canvasAndContext.canvas.height = 0;
-    canvasAndContext.canvas = null;
-    canvasAndContext.context = null;
-  }
-}
-
-// PDF.js worker configuration:
-// Workers are disabled via the disableWorker: true flag in getDocument() calls below.
-// This is the proper way to use PDF.js in Node.js server environments.
+const execAsync = promisify(exec);
 
 export interface PDFToImageOptions {
   dpi?: number;           // Resolution (default: 300)
   format?: 'png' | 'jpeg';
-  quality?: number;       // JPEG quality (1-100)
+  quality?: number;       // JPEG quality (1-100) - not used with PyMuPDF
   pages?: number[];       // Specific pages to convert (default: all)
 }
 
 /**
- * Convert PDF buffer to array of image buffers
+ * Convert PDF buffer to array of image buffers using PyMuPDF via Docker
  * Each buffer represents one page
  */
 export async function pdfToImages(
@@ -49,80 +30,104 @@ export async function pdfToImages(
   const {
     dpi = 300,
     format = 'png',
-    quality = 95,
     pages
   } = options;
 
-  try {
-    // Load PDF document with worker disabled and CanvasFactory
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(pdfBuffer),
-      useWorkerFetch: false,
-      isEvalSupported: false,
-      useSystemFonts: true,
-      disableWorker: true,  // Explicitly disable worker for server-side
-      verbosity: 0,  // Reduce console noise
-      // Additional options to prevent worker usage
-      standardFontDataUrl: undefined,
-      cMapUrl: undefined,
-      // Provide CanvasFactory for Node.js environment (required for PDFs with embedded images)
-      CanvasFactory: NodeCanvasFactory,
-    });
+  // Create temp directory for this conversion
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-convert-'));
+  const pdfPath = path.join(tmpDir, 'input.pdf');
+  const outputDir = path.join(tmpDir, 'output');
 
-    const pdf = await loadingTask.promise;
-    const images: Buffer[] = [];
+  try {
+    // Write PDF to temp file
+    await fs.writeFile(pdfPath, pdfBuffer);
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // Get total page count first
+    const containerPdfPath = `/tmp/pdf-${Date.now()}.pdf`;
+    await execAsync(`docker cp "${pdfPath}" ocr-paddleocr:${containerPdfPath}`);
+
+    const { stdout: pageCountOutput } = await execAsync(
+      `docker exec ocr-paddleocr python3 -c "import fitz; doc = fitz.open('${containerPdfPath}'); print(doc.page_count); doc.close()"`
+    );
+    const totalPages = parseInt(pageCountOutput.trim());
 
     // Determine which pages to process
-    const totalPages = pdf.numPages;
     const pagesToProcess = pages || Array.from({ length: totalPages }, (_, i) => i + 1);
 
+    // Python script for conversion with selective page processing
+    const pageList = pagesToProcess.join(',');
+    const pythonScript = `
+import fitz
+import sys
+
+try:
+    doc = fitz.open('${containerPdfPath}')
+    pages_to_convert = [${pageList}]
+    zoom = ${dpi} / 72
+    mat = fitz.Matrix(zoom, zoom)
+
+    for page_num in pages_to_convert:
+        if page_num < 1 or page_num > doc.page_count:
+            continue
+        page = doc[page_num - 1]  # 0-indexed
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        output_path = f'/tmp/page_{page_num}.${format}'
+        pix.save(output_path)
+
+    doc.close()
+    print('SUCCESS')
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+`;
+
+    // Run conversion in container
+    const { stderr } = await execAsync(
+      `docker exec ocr-paddleocr python3 -c '${pythonScript.replace(/'/g, "'\\''")}'`
+    );
+
+    if (stderr && !stderr.includes('SUCCESS')) {
+      throw new Error(`PDF conversion failed: ${stderr}`);
+    }
+
+    // Copy images back from container
+    const images: Buffer[] = [];
     for (const pageNum of pagesToProcess) {
-      if (pageNum < 1 || pageNum > totalPages) {
-        console.warn(`Page ${pageNum} out of range (1-${totalPages}), skipping`);
-        continue;
+      try {
+        const ext = format === 'png' ? 'png' : format;
+        const containerImgPath = `/tmp/page_${pageNum}.${ext}`;
+        const localImgPath = path.join(outputDir, `page_${pageNum}.${ext}`);
+
+        await execAsync(`docker cp ocr-paddleocr:${containerImgPath} "${localImgPath}"`);
+        const imageBuffer = await fs.readFile(localImgPath);
+        images.push(imageBuffer);
+
+        // Cleanup container file
+        await execAsync(`docker exec ocr-paddleocr rm -f ${containerImgPath}`).catch(() => {});
+      } catch (error) {
+        console.warn(`Failed to retrieve page ${pageNum}:`, error instanceof Error ? error.message : String(error));
       }
+    }
 
-      const page = await pdf.getPage(pageNum);
+    // Cleanup container PDF
+    await execAsync(`docker exec ocr-paddleocr rm -f ${containerPdfPath}`).catch(() => {});
 
-      // Calculate scale based on DPI (72 DPI is default PDF resolution)
-      const scale = dpi / 72;
-      const viewport = page.getViewport({ scale });
-
-      // Create canvas
-      const canvas = createCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext('2d');
-
-      // Fill with white background
-      context.fillStyle = 'white';
-      context.fillRect(0, 0, viewport.width, viewport.height);
-
-      // Render PDF page to canvas
-      await page.render({
-        canvasContext: context as any,
-        viewport: viewport
-      }).promise;
-
-      // Convert canvas to buffer
-      let buffer = canvas.toBuffer('image/png');
-
-      // Process with sharp for better quality/compression
-      if (format === 'jpeg') {
-        buffer = await sharp(buffer)
-          .jpeg({ quality, mozjpeg: true })
-          .toBuffer();
-      } else {
-        buffer = await sharp(buffer)
-          .png({ compressionLevel: 6, adaptiveFiltering: true })
-          .toBuffer();
-      }
-
-      images.push(buffer);
+    if (images.length === 0) {
+      throw new Error('No images were generated from PDF');
     }
 
     return images;
 
   } catch (error) {
     throw new Error(`PDF to image conversion failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    // Cleanup temp directory
+    try {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   }
 }
 
@@ -147,25 +152,34 @@ export async function pdfPageToImage(
 }
 
 /**
- * Get number of pages in PDF
+ * Get number of pages in PDF using PyMuPDF via Docker
  */
 export async function getPDFPageCount(pdfBuffer: Buffer): Promise<number> {
-  try {
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(pdfBuffer),
-      useWorkerFetch: false,
-      isEvalSupported: false,
-      disableWorker: true,
-      verbosity: 0,
-      standardFontDataUrl: undefined,
-      cMapUrl: undefined,
-      // Provide CanvasFactory for Node.js environment (required for PDFs with embedded images)
-      CanvasFactory: NodeCanvasFactory,
-    });
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-count-'));
+  const pdfPath = path.join(tmpDir, 'input.pdf');
 
-    const pdf = await loadingTask.promise;
-    return pdf.numPages;
+  try {
+    await fs.writeFile(pdfPath, pdfBuffer);
+
+    const containerPdfPath = `/tmp/pdf-count-${Date.now()}.pdf`;
+    await execAsync(`docker cp "${pdfPath}" ocr-paddleocr:${containerPdfPath}`);
+
+    const { stdout } = await execAsync(
+      `docker exec ocr-paddleocr python3 -c "import fitz; doc = fitz.open('${containerPdfPath}'); print(doc.page_count); doc.close()"`
+    );
+
+    // Cleanup
+    await execAsync(`docker exec ocr-paddleocr rm -f ${containerPdfPath}`).catch(() => {});
+
+    const pageCount = parseInt(stdout.trim());
+    if (isNaN(pageCount) || pageCount < 1) {
+      throw new Error(`Invalid page count: ${stdout}`);
+    }
+
+    return pageCount;
   } catch (error) {
     throw new Error(`Failed to get PDF page count: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }

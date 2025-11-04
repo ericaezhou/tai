@@ -139,6 +139,12 @@ export class InMemoryDatabase {
     );
   }
 
+  async getCourseEnrollments(courseId: string): Promise<CourseEnrollment[]> {
+    return Array.from(this.courseEnrollments.values()).filter(
+      enrollment => enrollment.courseId === courseId
+    );
+  }
+
   // Student Assignment Submission operations
   async saveStudentSubmission(submission: StudentAssignmentSubmission): Promise<StudentAssignmentSubmission> {
     this.studentSubmissions.set(submission.id, submission);

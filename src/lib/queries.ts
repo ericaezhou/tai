@@ -1,9 +1,11 @@
 import { db } from './database';
+import { gradeAssignment, processStudentSubmissionAction } from '@/app/actions';
 import type {
   Course,
   Assignment,
   AssignmentQuestion,
   StudentAssignmentSubmission,
+  SubmissionFile,
   QuestionSubmission,
   Student,
   AssignmentRubric,
@@ -364,6 +366,7 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
           dueDate: assignment.dueDate.toISOString(),
           score: submission?.score,
           status: submission?.status || "not_submitted",
+          gradesReleased: submission?.gradesReleased,
           published: submission?.published || false,
           questions
         };
@@ -458,6 +461,7 @@ export async function submitAssignment(
     await db.saveStudentSubmission(submissionData);
 
     // Save files (in a real implementation, you'd upload to cloud storage)
+    const savedFiles: SubmissionFile[] = [];
     for (const file of files) {
       const fileData = {
         id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -470,22 +474,96 @@ export async function submitAssignment(
       };
 
       await db.saveSubmissionFile(fileData);
+      savedFiles.push(fileData);
     }
 
-    // Automatically grade the assignment after submission using mock grading
-    console.log('Automatically grading assignment after submission (using mock grading)...');
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/sync/submission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission: {
+              ...submissionData,
+              submittedAt: submissionData.submittedAt
+                ? submissionData.submittedAt.toISOString()
+                : null,
+              createdAt: submissionData.createdAt.toISOString(),
+              updatedAt: submissionData.updatedAt.toISOString(),
+            },
+            files: savedFiles.map((file) => ({
+              ...file,
+              uploadedAt: file.uploadedAt.toISOString(),
+            })),
+          }),
+        });
+      } catch (syncError) {
+        console.error('Failed to sync student submission to server database:', syncError);
+      }
+    }
+
+    // Automatically grade the assignment after submission using multi-engine grading
+    console.log('Automatically grading assignment after submission with multi-engine pipeline...');
     try {
-      console.log('about to call grade assignment with ', assignmentId);
-      const gradingResult = await gradeAssignment(assignmentId, studentId);
-      if (gradingResult.success) {
-        console.log('Assignment graded successfully:', gradingResult);
+      // Check if there's a PDF file to process
+      const pdfFile = files.find(f => f.type === 'application/pdf');
+
+      if (pdfFile) {
+        console.log(`📄 Found PDF submission: ${pdfFile.name} (${pdfFile.size} bytes)`);
+
+        // Validate file size (must match bodySizeLimit in next.config.ts)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (pdfFile.size > MAX_FILE_SIZE) {
+          const sizeMB = (pdfFile.size / 1024 / 1024).toFixed(1);
+          console.error(`❌ PDF file too large: ${sizeMB}MB (max: 10MB)`);
+          alert(`PDF file is too large (${sizeMB}MB). Maximum allowed: 10MB. Please compress your PDF or upload a smaller file.`);
+          throw new Error(`PDF file size ${pdfFile.size} bytes exceeds maximum ${MAX_FILE_SIZE} bytes`);
+        }
+
+        // Get question numbers from assignment
+        const questions = await db.getAssignmentQuestions(assignmentId);
+        const questionNumbers = questions.map((_, idx) => idx + 1);
+
+        console.log(`📝 Processing ${questionNumbers.length} questions with multi-engine extraction...`);
+
+        // Run the complete grading pipeline via server action (pass File directly - it CAN be serialized)
+        const gradingResult = await processStudentSubmissionAction(
+          pdfFile,
+          assignmentId,
+          studentId,
+          questionNumbers
+        );
+
+        if (gradingResult.success) {
+          console.log('✅ Multi-engine grading completed successfully:', {
+            score: `${gradingResult.gradingResult?.totalScore}/${gradingResult.gradingResult?.maxScore}`,
+            engines: gradingResult.extractionResult ? 'All engines processed' : 'N/A'
+          });
+        } else {
+          console.error('❌ Multi-engine grading failed:', gradingResult.error);
+          // Don't fail the submission if grading fails
+        }
+      } else if (textSubmission && textSubmission.trim()) {
+        // If no PDF but has text submission, use mock grading as fallback
+        console.log('📝 No PDF found, using mock grading for text submission...');
+        const gradingResult = await mockGradeAssignment(assignmentId, studentId);
+        if (gradingResult.success) {
+          console.log('Assignment graded successfully (mock):', gradingResult);
+        } else {
+          console.error('Failed to grade assignment:', gradingResult.error);
+        }
       } else {
-        console.error('Failed to grade assignment:', gradingResult.error);
-        // Don't fail the submission if grading fails
+        console.log('⚠️ No PDF or text submission found, skipping grading');
       }
     } catch (gradingError) {
       console.error('Error during automatic grading:', gradingError);
-      // Don't fail the submission if grading fails
+      // Don't fail the submission if grading fails - fall back to mock grading
+      try {
+        console.log('Falling back to mock grading...');
+        await mockGradeAssignment(assignmentId, studentId);
+      } catch (fallbackError) {
+        console.error('Fallback grading also failed:', fallbackError);
+      }
     }
 
     return true;
@@ -795,6 +873,22 @@ export async function createAssignment(
     };
 
     await db.saveAssignment(newAssignment);
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/sync/assignment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newAssignment,
+            dueDate: newAssignment.dueDate.toISOString(),
+            createdAt: newAssignment.createdAt.toISOString(),
+            updatedAt: newAssignment.updatedAt.toISOString(),
+          }),
+        });
+      } catch (syncError) {
+        console.error('Failed to sync assignment to server database:', syncError);
+      }
+    }
     return newAssignment;
   } catch (error) {
     console.error('Error creating assignment:', error);
@@ -822,6 +916,7 @@ export async function saveAssignmentRubric(
     // Also create AssignmentQuestion entries for each question in the rubric
     // This is needed for the grading function to work properly
     console.log('[saveAssignmentRubric] Creating assignment questions from rubric...');
+    const createdQuestions: AssignmentQuestion[] = [];
     for (let i = 0; i < questions.length; i++) {
       const rubricQuestion = questions[i];
       const assignmentQuestion: AssignmentQuestion = {
@@ -835,9 +930,32 @@ export async function saveAssignmentRubric(
       };
 
       await db.saveAssignmentQuestion(assignmentQuestion);
+      createdQuestions.push(assignmentQuestion);
       console.log(`[saveAssignmentRubric] Created question ${i + 1}:`, assignmentQuestion.name);
     }
     console.log('[saveAssignmentRubric] All assignment questions created');
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/sync/rubric', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rubric: {
+              ...rubric,
+              createdAt: rubric.createdAt.toISOString(),
+              updatedAt: rubric.updatedAt.toISOString(),
+            },
+            questions: createdQuestions.map((question) => ({
+              ...question,
+              createdAt: question.createdAt.toISOString(),
+            })),
+          }),
+        });
+      } catch (syncError) {
+        console.error('Failed to sync assignment rubric to server database:', syncError);
+      }
+    }
 
     return rubric;
   } catch (error) {
@@ -861,6 +979,8 @@ export type StudentPerformance = {
   name: string;
   email: string;
   score?: number;
+  submissionId?: string;
+  gradesReleased?: boolean;
 };
 
 export async function getStudentPerformanceForAssignment(assignmentId: string, courseId: string): Promise<StudentPerformance[]> {
@@ -892,7 +1012,9 @@ export async function getStudentPerformanceForAssignment(assignmentId: string, c
         id: student.id,
         name: student.name,
         email: student.email,
-        score: submission?.score
+        score: submission?.score,
+        submissionId: submission?.id,
+        gradesReleased: submission?.gradesReleased
       });
     }
 

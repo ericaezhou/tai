@@ -36,7 +36,10 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
       .trim()
   }
 
-  if (!assignment.questions || assignment.status === "ungraded" || (assignment.status === "graded" && !assignment.published)) {
+  // Check if grades are released to student
+  const gradesNotReleased = assignment.status === "ungraded" || (!assignment.gradesReleased && !assignment.published)
+
+  if (!assignment.questions || gradesNotReleased) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <Button onClick={onBack} variant="ghost" className="mb-6 gap-2">
@@ -46,11 +49,14 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
 
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">{assignment.name}</h2>
-          <p className="text-muted-foreground">
-            {assignment.status === "graded" && !assignment.published
-              ? "This assignment has been submitted. Grades will be visible once published by your instructor."
-              : "This assignment has not been graded yet."}
-          </p>
+          {assignment.status === "ungraded" ? (
+            <p className="text-muted-foreground">This assignment has not been graded yet.</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-muted-foreground">Your assignment has been graded!</p>
+              <p className="text-sm text-muted-foreground">Grades will be released by your instructor soon.</p>
+            </div>
+          )}
         </div>
       </div>
     )

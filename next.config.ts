@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb'  // Allow up to 10MB for PDF uploads
+    }
+  },
   webpack: (config, { isServer }) => {
     // For server-side builds, externalize these packages to prevent bundling
     if (isServer) {

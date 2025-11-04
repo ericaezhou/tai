@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { mockAssignmentData } from "@/lib/mockData";
 import { sharedAssignments } from "@/lib/assignments";
 import Sidebar from "@/components/Sidebar";
@@ -9,13 +10,14 @@ import InsightsPanel from "@/components/InsightsPanel";
 import SubmissionsTable from "@/components/SubmissionsTable";
 
 interface AssignmentPageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: {
+    assignmentId: string;
+  };
 }
 
 export default function AssignmentPage({ params }: AssignmentPageProps) {
-  const { id } = use(params);
+  const { assignmentId } = params;
+  const router = useRouter();
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
 
   const { title, questions, submissions, overallInsights, questionInsights } =
@@ -27,8 +29,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
     : overallInsights;
 
   const handleStudentClick = (submissionId: string) => {
-    console.log("View student submission:", submissionId);
-    // TODO: Navigate to detailed submission view
+    router.push(`/assignment/${assignmentId}/submission/${submissionId}`);
   };
 
   // Get question display names (Q1, Q2, Q3, Q4)
@@ -38,7 +39,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
   };
 
   // Get assignment name based on ID
-  const assignmentName = sharedAssignments.find((a) => a.id === id)?.name || "Assignment";
+  const assignmentName = sharedAssignments.find((a) => a.id === assignmentId)?.name || "Assignment";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -46,7 +47,7 @@ export default function AssignmentPage({ params }: AssignmentPageProps) {
       <Sidebar
         courseName="CS 101: Data Structures"
         assignments={sharedAssignments}
-        currentAssignmentId={id}
+        currentAssignmentId={assignmentId}
       />
 
       {/* Main Content Area */}

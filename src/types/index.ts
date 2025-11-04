@@ -108,6 +108,7 @@ export interface StudentAssignmentSubmission {
   assignmentId: string;
   studentId: string;
   status: "graded" | "ungraded" | "not_submitted";
+  gradesReleased?: boolean; // Whether grades are visible to students (for TA review workflow)
   score?: number;
   submittedAt?: Date;
   files?: SubmissionFile[];
@@ -133,6 +134,19 @@ export interface SubmissionFile {
   uploadedAt: Date;
 }
 
+export interface OCREngineResult {
+  engine: 'claude' | 'paddleocr' | 'pix2text' | 'unsiloed';
+  extractedText: string;
+  pointsAwarded?: number;
+  feedback?: string;
+  confidence?: number;
+  processingTime?: number;
+  metadata?: {
+    model?: string;
+    tokenUsage?: { inputTokens: number; outputTokens: number };
+  };
+}
+
 export interface QuestionSubmission {
   id: string;
   submissionId: string;
@@ -140,6 +154,9 @@ export interface QuestionSubmission {
   pointsAwarded?: number;
   feedback?: string;
   submissionContent?: string;
+  // Multi-engine OCR results
+  ocrEngineResults?: OCREngineResult[];
+  selectedEngine?: 'claude' | 'paddleocr' | 'pix2text' | 'unsiloed';
   createdAt: Date;
   updatedAt: Date;
 }
