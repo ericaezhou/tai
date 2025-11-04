@@ -9,8 +9,17 @@ import type {
   QuestionSubmission,
   Student,
   AssignmentRubric,
-  RubricQuestion
+  RubricQuestion,
+  Solution,
+  StructuredAnswer
 } from '@/types';
+
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: "FILL IN YOUR KEY HERE",
+  dangerouslyAllowBrowser: true
+});
 
 // Mock grading function that generates scores aligned with the assignment rubric
 async function mockGradeAssignment(assignmentId: string, studentId: string): Promise<{
@@ -23,7 +32,6 @@ async function mockGradeAssignment(assignmentId: string, studentId: string): Pro
   };
 }> {
   try {
-    const assignment = await db.getAssignment(assignmentId);
     const questions = await db.getAssignmentQuestions(assignmentId);
     const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
     const rubric = await db.getAssignmentRubric(assignmentId);
@@ -112,10 +120,12 @@ async function mockGradeAssignment(assignmentId: string, studentId: string): Pro
     }
 
     // Update the main submission with total score and graded status
+    // Keep published as false - instructor must manually publish grades
     const updatedSubmission: StudentAssignmentSubmission = {
       ...submission,
       score: totalScore,
       status: 'graded',
+      published: submission.published || false, // Preserve existing published status or default to false
       updatedAt: new Date(),
     };
 
@@ -139,6 +149,151 @@ async function mockGradeAssignment(assignmentId: string, studentId: string): Pro
   }
 }
 
+export async function gradeAssignment(assignmentId: string, studentId: string) {
+  try {
+    const questions = await db.getAssignmentQuestions(assignmentId);
+    const submission = await db.getStudentSubmissionByAssignment(assignmentId, studentId);
+    const solutions = await db.getSolutionsByAssignment(assignmentId);
+
+    if (!submission) {
+      return {
+        success: false,
+        error: 'Submission not found',
+      };
+    }
+
+    const structuredAnswers = submission.structuredAnswer;
+    console.log({ structuredAnswers });
+
+    var payload: { solution: Solution, structuredAnswer: StructuredAnswer, questionId: string, maxPoints: number }[] = [];
+    for (const ans of structuredAnswers) {
+      const questionNumber = ans.questionNumber;
+      const solution = solutions.find(s => s.id === `solution-${questionNumber}`) || solutions[questionNumber - 1];
+      const question = questions.find(q => q.orderIndex === questionNumber - 1);
+
+      if (question) {
+        payload.push({
+          solution,
+          structuredAnswer: ans,
+          questionId: question.id,
+          maxPoints: question.totalPoints
+        });
+      }
+    }
+
+    // Create a detailed prompt for grading
+    const gradingPrompt = `You are an expert grader. Grade each student answer against the provided solution and return a structured JSON response.
+You are to award points by prioritizing final answers (even if the assumptions used leading up to it is dubious).
+For each question, provide:
+1. Points awarded (out of the maximum points)
+2. Detailed feedback explaining the grade
+3. Specific areas where the student did well or needs improvement
+
+Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "grades": [
+    {
+      "questionNumber": 1,
+      "pointsAwarded": 8,
+      "maxPoints": 10,
+      "feedback": "Detailed feedback explaining the grade, what was correct, what was missing, and suggestions for improvement."
+    }
+  ],
+  "overallFeedback": "General comments about the student's performance across all questions."
+}
+
+Student answers and solutions to grade:
+${JSON.stringify(payload, null, 2)}`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096 * 2,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: gradingPrompt }
+        ]
+      }],
+    });
+
+    console.log("Response received: ", response);
+
+    // Extract and parse the response
+    const textContent = response.content.find(block => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text content in grading response');
+    }
+
+    let gradingData;
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = textContent.text.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/```json\n?|\n?```/g, '').trim();
+      }
+      gradingData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error('Failed to parse grading JSON:', textContent.text);
+      throw new Error('Failed to parse grading data from Claude response');
+    }
+
+    // Store grading results in database
+    let totalScore = 0;
+    const questionSubmissions = [];
+
+    for (const grade of gradingData.grades) {
+      const questionNumber = grade.questionNumber;
+      const question = questions.find(q => q.orderIndex === questionNumber - 1);
+
+      if (question) {
+        // Create or update question submission
+        const questionSubmission = {
+          id: generateId(),
+          submissionId: submission.id,
+          questionId: question.id,
+          pointsAwarded: grade.pointsAwarded || 0,
+          feedback: grade.feedback || '',
+          submissionContent: structuredAnswers.find(ans => ans.questionNumber === questionNumber)?.content || '',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await db.saveQuestionSubmission(questionSubmission);
+        questionSubmissions.push(questionSubmission);
+        totalScore += grade.pointsAwarded || 0;
+      }
+    }
+
+    // Update the main submission with total score and graded status
+    const updatedSubmission = {
+      ...submission,
+      score: totalScore,
+      status: 'graded' as const,
+      updatedAt: new Date(),
+    };
+
+    await db.saveStudentSubmission(updatedSubmission);
+
+    return {
+      success: true,
+      gradingResults: {
+        totalScore,
+        maxScore: questions.reduce((sum, q) => sum + q.totalPoints, 0),
+        questionSubmissions,
+        overallFeedback: gradingData.overallFeedback || '',
+        submission: updatedSubmission,
+      },
+    };
+
+  } catch (error) {
+    console.error('Error grading assignment:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
 // Types for the page components (matching existing structure)
 export type StudentAssignment = {
   id: string;
@@ -146,6 +301,7 @@ export type StudentAssignment = {
   dueDate: string;
   score?: number;
   status: "graded" | "ungraded" | "not_submitted";
+  published?: boolean;
   questions?: Question[];
 };
 
@@ -211,6 +367,7 @@ export async function getCoursesWithAssignmentsForStudent(studentId: string): Pr
           score: submission?.score,
           status: submission?.status || "not_submitted",
           gradesReleased: submission?.gradesReleased,
+          published: submission?.published || false,
           questions
         };
 
@@ -284,7 +441,9 @@ export async function submitAssignment(
     // Parse structured answers from text submission
     // For now, we'll create a simple structured answer from the text submission
     // In a real implementation, you might parse this more intelligently
-    const structuredAnswers = await parseTextSubmissionToStructuredAnswers(textSubmission, assignmentId);
+    const structuredAnswers = await parseTextSubmissionToStructuredAnswersWithClaude(files[0], assignmentId);
+    // const structuredAnswers = await parseTextSubmissionToStructuredAnswers(textSubmission, assignmentId);
+    console.log("structured answers from submit assignment: ", structuredAnswers);
 
     const submissionData: StudentAssignmentSubmission = {
       id: existingSubmission?.id || `submission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -294,6 +453,7 @@ export async function submitAssignment(
       submittedAt: new Date(),
       textSubmission: textSubmission || undefined,
       structuredAnswer: structuredAnswers,
+      published: false, // Grades not published until instructor manually publishes
       createdAt: existingSubmission?.createdAt || new Date(),
       updatedAt: new Date()
     };
@@ -410,6 +570,155 @@ export async function submitAssignment(
   } catch (error) {
     console.error('Error submitting assignment:', error);
     return false;
+  }
+}
+
+// Publish grades for an assignment to make them visible to students
+export async function publishGrades(assignmentId: string): Promise<boolean> {
+  try {
+    // Get all submissions for this assignment
+    const assignmentSubmissions = await db.getSubmissionsByAssignment(assignmentId);
+
+    // Update each submission to set published = true
+    for (const submission of assignmentSubmissions) {
+      if (submission.status === 'graded') {
+        const updatedSubmission: StudentAssignmentSubmission = {
+          ...submission,
+          published: true,
+          updatedAt: new Date()
+        };
+        await db.saveStudentSubmission(updatedSubmission);
+      }
+    }
+
+    console.log(`Published grades for ${assignmentSubmissions.length} submissions`);
+    return true;
+  } catch (error) {
+    console.error('Error publishing grades:', error);
+    return false;
+  }
+}
+
+async function parseTextSubmissionToStructuredAnswersWithClaude(
+  pdfSubmission: File,
+  assignmentId: string
+): Promise<Array<{ questionNumber: number; content: string }>> {
+  try {
+    // Get assignment questions to understand the structure
+    const questions = await db.getAssignmentQuestions(assignmentId);
+
+    const fileContentAsArrayBuffer = await pdfSubmission.arrayBuffer();
+
+    const pdfBase64 = Buffer.from(fileContentAsArrayBuffer).toString('base64');
+
+    if (questions.length === 0) {
+      // If no questions found, return the text as a single answer
+      return [{
+        questionNumber: 1,
+        content: '',
+      }];
+    }
+
+    // Create a prompt for Claude to parse the submission
+    const questionsList = questions.map((q, index) =>
+      `Question ${index + 1}: ${q.name}${q.description ? ` - ${q.description}` : ''}`
+    ).join('\n');
+
+    const parsingPrompt = `You are tasked with parsing a student's text submission into structured answers for each question in an assignment.
+
+Assignment Questions:
+${questionsList}
+
+See following message for student's submission as pdf.
+
+Please analyze the text submission and extract the student's answer for each question. The student may have:
+1. Clearly labeled their answers (e.g., "Question 1:", "Q1:", "1.", etc.)
+2. Answered questions in order without labels
+3. Provided a single block of text that addresses multiple questions
+4. Skipped some questions
+
+Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "answers": [
+    {
+      "questionNumber": 1,
+      "content": "The student's answer for question 1"
+    },
+    {
+      "questionNumber": 2,
+      "content": "The student's answer for question 2"
+    }
+  ]
+}
+
+Rules:
+- Include an entry for each question (${questions.length} total)
+- If a question wasn't answered, use empty string for content
+- Extract the most relevant parts of the text for each question
+- Preserve the student's original wording as much as possible
+- If the text seems to address multiple questions in one block, try to split it appropriately`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: parsingPrompt },
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: pdfBase64,
+            },
+          }
+        ]
+      }],
+    });
+
+    // Extract and parse the response
+    const textContent = response.content.find(block => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text content in parsing response');
+    }
+
+    let parsedData;
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = textContent.text.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/```json\n?|\n?```/g, '').trim();
+      }
+      parsedData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error('Failed to parse Claude response JSON:', textContent.text);
+      return [];
+    }
+
+    // Validate and format the response
+    const structuredAnswers: Array<{ questionNumber: number; content: string }> = [];
+
+    if (parsedData.answers && Array.isArray(parsedData.answers)) {
+      // Ensure we have answers for all questions
+      for (let i = 1; i <= questions.length; i++) {
+        const answer = parsedData.answers.find((a: any) => a.questionNumber === i);
+        structuredAnswers.push({
+          questionNumber: i,
+          content: answer?.content || ''
+        });
+      }
+    } else {
+      // Fallback if the response format is unexpected
+      console.warn('Unexpected Claude response format, falling back to simple parsing');
+      return []
+    }
+
+    return structuredAnswers.sort((a, b) => a.questionNumber - b.questionNumber);
+
+  } catch (error) {
+    console.error('Error parsing with Claude:', error);
+    return [];
   }
 }
 
@@ -691,8 +1000,11 @@ export async function getStudentPerformanceForAssignment(assignmentId: string, c
     const studentPerformances: StudentPerformance[] = [];
 
     for (const enrollment of allEnrollments) {
-      const student = await db.getStudent(enrollment.studentId);
-      if (!student) continue;
+      const student = await db.getStudent((enrollment as any).studentId);
+      if (!student) {
+        console.warn(`Student ${(enrollment as any).studentId} not found in database`);
+        continue;
+      }
 
       const submission = submissions.find(s => s.studentId === student.id);
 

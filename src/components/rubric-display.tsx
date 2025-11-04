@@ -22,10 +22,10 @@ export function RubricDisplay({ solutionId }: RubricDisplayProps) {
         setLoading(true);
         const result = await getRubricBySolution(solutionId);
         
-        if (result.success) {
+        if (result.success && result.rubric) {
           setRubric(result.rubric);
         } else {
-          setError(result.error);
+          setError(result.error || 'Unknown error occurred');
         }
       } catch (err) {
         setError('Failed to fetch rubric');

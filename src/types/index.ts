@@ -114,6 +114,7 @@ export interface StudentAssignmentSubmission {
   files?: SubmissionFile[];
   structuredAnswer: StructuredAnswer[];
   textSubmission?: string;
+  published: boolean; // Whether grades are visible to students
   createdAt: Date;
   updatedAt: Date;
 }

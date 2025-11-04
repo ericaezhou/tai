@@ -10,7 +10,6 @@ import { AssignmentSubmission } from "@/components/assignment-submission"
 import { AssignmentDetail } from "@/components/assignment-detail"
 import { SubmissionDetail } from "@/components/submission-detail"
 import RubricBreakdownPage, { type RubricBreakdown } from "@/components/rubric-breakdown"
-import Sidebar from "@/components/Sidebar"
 import { initializeDatabase } from "@/lib/seed-data"
 import {
   getCoursesWithAssignmentsForStudent,
@@ -21,6 +20,7 @@ import {
   saveAssignmentRubric,
   getAssignmentRubric,
   getStudentPerformanceForAssignment,
+  publishGrades,
   type CourseWithAssignments,
   type StudentAssignment as DbStudentAssignment,
   type Question as DbQuestion,
@@ -63,6 +63,7 @@ export type StudentAssignment = {
   score?: number
   status: "graded" | "ungraded" | "not_submitted"
   gradesReleased?: boolean
+  published?: boolean
   questions?: Question[]
 }
 
@@ -522,6 +523,55 @@ export default function Page() {
     }
   }
 
+  const handlePublishGrades = async (assignmentId: string) => {
+    try {
+      const success = await publishGrades(assignmentId)
+      if (success) {
+        // Refresh student data
+        const studentId = 'student_1'
+        const coursesData = await getCoursesWithAssignmentsForStudent(studentId)
+        setCourses(coursesData)
+
+        // Refresh instructor data
+        const instructorAssignments = await getAssignmentsForCourse(courseId)
+        const formattedAssignments: Assignment[] = await Promise.all(
+          instructorAssignments.map(async (a) => {
+            const rubric = await getAssignmentRubric(a.id)
+            const studentPerformances = await getStudentPerformanceForAssignment(a.id, courseId)
+
+            const students: StudentScore[] = studentPerformances
+              .filter(s => s.score !== undefined)
+              .map(s => ({
+                id: s.id,
+                name: s.name,
+                email: s.email,
+                score: s.score!
+              }))
+
+            return {
+              id: a.id,
+              name: a.name,
+              dueDate: a.dueDate,
+              rubricBreakdown: rubric ? {
+                assignmentName: rubric.assignmentName,
+                questions: rubric.questions
+              } : undefined,
+              students
+            }
+          })
+        )
+        setAssignments(formattedAssignments)
+
+        alert("Grades published successfully! Students can now see their scores.")
+      } else {
+        alert("Failed to publish grades. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error publishing grades:", error)
+      alert("An error occurred while publishing grades.")
+    }
+  }
+
   const handleSelectQuestion = (question: Question) => {
     setSelectedQuestion(question)
     setStudentView("question")
@@ -556,6 +606,7 @@ export default function Page() {
           {view === "overview" && (
             <AssignmentsOverview
               assignments={assignments}
+              courses={instructorCourses}
               onCreateNew={() => setView("create")}
               onSelectAssignment={(assignment) => {
                 setSelectedAssignment(assignment)
@@ -568,7 +619,6 @@ export default function Page() {
               }}
               mode={mode}
               onToggleMode={toggleMode}
-              courses={instructorCourses}
             />
           )}
           {view === "create" && (
@@ -590,6 +640,7 @@ export default function Page() {
               assignment={selectedAssignment}
               onBack={() => setView("overview")}
               onStudentClick={handleStudentClick}
+              onPublishGrades={handlePublishGrades}
             />
           )}
           {view === "submission" && selectedSubmissionId && selectedAssignment && (

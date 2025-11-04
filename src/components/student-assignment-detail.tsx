@@ -35,8 +35,9 @@ export function StudentAssignmentDetail({ assignment, onBack, onSelectQuestion }
       .replace(/^•/gm, '• ') // Ensure proper spacing after bullet points
       .trim()
   }
+
   // Check if grades are released to student
-  const gradesNotReleased = assignment.status === "ungraded" || !assignment.gradesReleased
+  const gradesNotReleased = assignment.status === "ungraded" || (!assignment.gradesReleased && !assignment.published)
 
   if (!assignment.questions || gradesNotReleased) {
     return (

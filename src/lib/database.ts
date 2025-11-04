@@ -13,7 +13,7 @@ import {
 } from '@/types';
 
 // Simple in-memory storage - replace with real database in production
-class InMemoryDatabase {
+export class InMemoryDatabase {
   private solutions: Map<string, Solution> = new Map();
   private rubrics: Map<string, Rubric> = new Map();
   private courses: Map<string, Course> = new Map();

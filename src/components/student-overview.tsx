@@ -124,10 +124,15 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    {assignment.status === "graded" ? (
+                    {assignment.status === "graded" && assignment.published ? (
                       <Badge variant="default" className="gap-1 bg-green-100 text-green-800 border-green-200">
                         <CheckCircle2 className="h-3 w-3" />
                         Graded
+                      </Badge>
+                    ) : assignment.status === "graded" && !assignment.published ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Submitted
                       </Badge>
                     ) : assignment.status === "ungraded" ? (
                       <Badge variant="secondary" className="gap-1">
@@ -142,7 +147,7 @@ export function StudentOverview({ courses, onSelectAssignment, onToggleMode }: S
                     )}
                   </TableCell>
                   <TableCell className="text-right font-semibold">
-                    {assignment.status === "graded" ? (
+                    {assignment.status === "graded" && assignment.published ? (
                       <span className={getScoreColor(assignment.score || 0)}>
                         {assignment.score}
                       </span>
