@@ -8,8 +8,9 @@
 import type { Solution, StructuredAnswer, StudentAssignmentSubmission } from '@/types';
 import { extractStructuredAnswersFromPDF, validateStructuredAnswers } from '../ocr/grading-adapter';
 import { extractSolutionKeyFromPDF, validateSolutionExtraction } from '../ocr/extract-solution';
+import { extractWithAllEngines } from '../ocr/multi-engine-adapter';
 import { db } from '../database';
-import { gradeAssignment } from '@/app/actions';
+import { gradeAssignment, gradeSpecificExtraction } from '@/app/actions';
 
 export interface PipelineResult {
   success: boolean;
@@ -60,25 +61,37 @@ export async function processStudentSubmission(
   try {
     console.log(`📄 Processing submission for student ${studentId}, assignment ${assignmentId}`);
 
-    // Step 1: Extract structured answers using Claude
-    console.log('🔍 Extracting answers from PDF...');
-    const extractionResult = await extractStructuredAnswersFromPDF(
+    // Step 1: Extract structured answers using ALL engines (Claude, PaddleOCR, Pix2Text)
+    console.log('🔍 Extracting answers from PDF with multiple engines...');
+    const multiEngineResult = await extractWithAllEngines(
       studentPdfBuffer,
       questionNumbers
     );
 
-    if (!extractionResult.success) {
+    if (!multiEngineResult.success) {
       return {
         success: false,
-        error: `Extraction failed: ${extractionResult.error}`,
+        error: `All extraction engines failed: ${multiEngineResult.error}`,
       };
     }
 
-    console.log(`✅ Extracted ${extractionResult.structuredAnswers.length} answers`);
+    // Use the best engine's result for the official submission
+    const bestEngineResult = multiEngineResult.engineResults.find(
+      r => r.engine === multiEngineResult.bestEngine
+    );
+
+    if (!bestEngineResult || bestEngineResult.structuredAnswers.length === 0) {
+      return {
+        success: false,
+        error: `Best engine (${multiEngineResult.bestEngine}) failed to extract answers`,
+      };
+    }
+
+    console.log(`✅ Extracted ${bestEngineResult.structuredAnswers.length} answers (best engine: ${multiEngineResult.bestEngine})`);
 
     // Step 2: Validate extracted answers
     const validation = validateStructuredAnswers(
-      extractionResult.structuredAnswers,
+      bestEngineResult.structuredAnswers,
       questionNumbers
     );
 
@@ -98,7 +111,8 @@ export async function processStudentSubmission(
         assignmentId,
         studentId,
         status: 'ungraded',
-        structuredAnswer: extractionResult.structuredAnswers,
+        gradesReleased: false, // Grades hidden until TA releases them
+        structuredAnswer: bestEngineResult.structuredAnswers,
         submittedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -107,26 +121,88 @@ export async function processStudentSubmission(
       console.log(`✅ Created new submission: ${submissionId}`);
     } else {
       // Update existing submission
-      submission.structuredAnswer = extractionResult.structuredAnswers;
+      submission.structuredAnswer = bestEngineResult.structuredAnswers;
       submission.status = 'ungraded';
+      submission.gradesReleased = false; // Reset grade release on resubmission
       submission.submittedAt = new Date();
       submission.updatedAt = new Date();
       await db.saveStudentSubmission(submission);
       console.log(`✅ Updated existing submission: ${submission.id}`);
     }
 
-    // Step 4: Run auto-grading
+    // Step 4: Run auto-grading (using best engine's extraction)
     console.log('🎯 Running auto-grading...');
     const gradingResult = await gradeAssignment(assignmentId, studentId);
 
-    // Extract grading details
+    // Step 5: Grade ALL engine extractions for comparison
+    console.log('🎯 Grading all engine extractions for comparison...');
+    const questions = await db.getAssignmentQuestions(assignmentId);
+    const solutions = await db.getSolutionsByAssignment(assignmentId);
+
+    // Grade each engine's extraction
+    const engineGradingResults = await Promise.all(
+      multiEngineResult.engineResults.map(async (engineResult) => {
+        console.log(`  Grading ${engineResult.engine} extraction...`);
+        const gradingResult = await gradeSpecificExtraction(
+          engineResult.structuredAnswers,
+          assignmentId,
+          solutions,
+          questions
+        );
+
+        return {
+          engine: engineResult.engine,
+          gradingResult,
+        };
+      })
+    );
+
+    // Step 6: Store multi-engine OCR results with grading for comparison dashboard
+    console.log('💾 Storing multi-engine OCR results with grades...');
     const questionSubmissions = await db.getQuestionSubmissions(submission.id);
 
+    // Store extraction AND grading results from all engines
+    for (const qs of questionSubmissions) {
+      const questions = await db.getAssignmentQuestions(assignmentId);
+      const question = questions.find(q => q.id === qs.questionId);
+      const questionNumber = (question?.orderIndex || 0) + 1;
+
+      // Build OCR engine results array with extraction AND grading data
+      const ocrResults: import('@/types').OCREngineResult[] = multiEngineResult.engineResults.map(engineResult => {
+        const extractedAnswer = engineResult.structuredAnswers.find(
+          a => a.questionNumber === questionNumber
+        );
+
+        // Find the grading result for this engine and question
+        const engineGrading = engineGradingResults.find(eg => eg.engine === engineResult.engine);
+        const questionGrade = engineGrading?.gradingResult.grades?.find(
+          g => g.questionNumber === questionNumber
+        );
+
+        return {
+          engine: engineResult.engine,
+          extractedText: extractedAnswer?.content || '',
+          pointsAwarded: questionGrade?.pointsAwarded,
+          feedback: questionGrade?.feedback,
+          confidence: engineResult.confidence,
+          processingTime: engineResult.processingTime,
+          metadata: engineResult.metadata
+        };
+      });
+
+      // Update question submission with multi-engine data
+      qs.ocrEngineResults = ocrResults;
+      qs.selectedEngine = multiEngineResult.bestEngine;
+      qs.updatedAt = new Date();
+      await db.saveQuestionSubmission(qs);
+    }
+
+    // Extract grading details for return
     const questionGrades = await Promise.all(questionSubmissions.map(async (qs) => {
       const questions = await db.getAssignmentQuestions(assignmentId);
       const question = questions.find(q => q.id === qs.questionId);
       return {
-        questionNumber: question?.orderIndex! + 1, // Convert 0-indexed to 1-indexed
+        questionNumber: question?.orderIndex! + 1,
         pointsAwarded: qs.pointsAwarded || 0,
         maxPoints: question?.totalPoints || 0,
         feedback: qs.feedback || '',
@@ -142,9 +218,9 @@ export async function processStudentSubmission(
       success: true,
       submissionId: submission.id,
       extractionResult: {
-        structuredAnswers: extractionResult.structuredAnswers,
-        processingTime: extractionResult.metadata?.processingTime || 0,
-        tokenUsage: extractionResult.metadata?.tokenUsage,
+        structuredAnswers: bestEngineResult.structuredAnswers,
+        processingTime: bestEngineResult.processingTime,
+        tokenUsage: bestEngineResult.metadata?.tokenUsage,
       },
       gradingResult: {
         totalScore,

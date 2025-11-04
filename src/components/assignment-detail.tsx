@@ -1,20 +1,60 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
+import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Eye, EyeOff } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import type { Assignment } from "@/app/page"
+import { releaseGradesForSubmission, releaseAllGradesForAssignment } from "@/app/actions"
 
 type AssignmentDetailProps = {
   assignment: Assignment
   onBack: () => void
+  onStudentClick?: (studentId: string, submissionId: string) => void
 }
 
-export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) {
+export function AssignmentDetail({ assignment, onBack, onStudentClick }: AssignmentDetailProps) {
   const students = assignment.students || []
+  const [releasingGrades, setReleasingGrades] = useState<string | null>(null)
+  const [releasingAll, setReleasingAll] = useState(false)
+
+  const handleReleaseGrades = async (submissionId: string) => {
+    setReleasingGrades(submissionId)
+    try {
+      const result = await releaseGradesForSubmission(submissionId)
+      if (result.success) {
+        // Refresh the page to show updated status
+        window.location.reload()
+      } else {
+        alert(`Error: ${result.error}`)
+      }
+    } catch (error) {
+      alert(`Error releasing grades: ${error}`)
+    } finally {
+      setReleasingGrades(null)
+    }
+  }
+
+  const handleReleaseAllGrades = async () => {
+    setReleasingAll(true)
+    try {
+      const result = await releaseAllGradesForAssignment(assignment.id)
+      if (result.success) {
+        alert(`Released grades for ${result.releasedCount} submissions`)
+        // Refresh the page to show updated status
+        window.location.reload()
+      } else {
+        alert(`Error: ${result.error}`)
+      }
+    } catch (error) {
+      alert(`Error releasing all grades: ${error}`)
+    } finally {
+      setReleasingAll(false)
+    }
+  }
 
   // Calculate statistics
   const scores = students.map((s) => s.score)
@@ -163,8 +203,21 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
 
       <Card>
         <CardHeader>
-          <CardTitle>Student Scores</CardTitle>
-          <CardDescription>Individual student performance</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Student Scores</CardTitle>
+              <CardDescription>Individual student performance</CardDescription>
+            </div>
+            <Button
+              onClick={handleReleaseAllGrades}
+              disabled={releasingAll}
+              variant="default"
+              size="sm"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {releasingAll ? "Releasing..." : "Release All Grades"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -173,14 +226,43 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
                 <TableHead>Student Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow
+                  key={student.id}
+                  className={onStudentClick && student.submissionId ? "cursor-pointer hover:bg-muted/50" : ""}
+                >
+                  <TableCell
+                    className="font-medium"
+                    onClick={() => {
+                      if (onStudentClick && student.submissionId) {
+                        onStudentClick(student.id, student.submissionId)
+                      }
+                    }}
+                  >
+                    {student.name}
+                  </TableCell>
+                  <TableCell
+                    onClick={() => {
+                      if (onStudentClick && student.submissionId) {
+                        onStudentClick(student.id, student.submissionId)
+                      }
+                    }}
+                  >
+                    {student.email}
+                  </TableCell>
+                  <TableCell
+                    className="text-right"
+                    onClick={() => {
+                      if (onStudentClick && student.submissionId) {
+                        onStudentClick(student.id, student.submissionId)
+                      }
+                    }}
+                  >
                     <span
                       className={`font-semibold ${
                         student.score >= 90
@@ -196,6 +278,34 @@ export function AssignmentDetail({ assignment, onBack }: AssignmentDetailProps) 
                     >
                       {student.score}
                     </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {student.gradesReleased ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                        <Eye className="h-3 w-3" />
+                        Released
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <EyeOff className="h-3 w-3" />
+                        Hidden
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {!student.gradesReleased && student.submissionId && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleReleaseGrades(student.submissionId!)
+                        }}
+                        disabled={releasingGrades === student.submissionId}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {releasingGrades === student.submissionId ? "Releasing..." : "Release"}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

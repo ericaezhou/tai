@@ -13,27 +13,27 @@ import type { Assignment } from "@/app/page"
 
 interface CreateAssignmentPageProps {
   onBack: () => void
-  onCreate: (assignment: Assignment, rubricFile: File | null) => void
+  onCreate: (assignment: Assignment, rubricFile: File | null, problemSetFile: File | null, solutionFile: File | null) => void
 }
 
 export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignmentPageProps) {
   const [assignmentName, setAssignmentName] = useState("")
-  const [questionFile, setQuestionFile] = useState<File | null>(null)
+  const [problemSetFile, setProblemSetFile] = useState<File | null>(null)
   const [rubricFile, setRubricFile] = useState<File | null>(null)
+  const [solutionFile, setSolutionFile] = useState<File | null>(null)
   const [specialInstructions, setSpecialInstructions] = useState("")
   const [startDate, setStartDate] = useState("")
   const [dueDate, setDueDate] = useState("")
   const [errors, setErrors] = useState<{
     assignmentName?: string
-    questionFile?: string
-    rubricFile?: string
+    problemSetFile?: string
     startDate?: string
     dueDate?: string
   }>({})
 
-  const handleQuestionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProblemSetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setQuestionFile(e.target.files[0])
+      setProblemSetFile(e.target.files[0])
     }
   }
 
@@ -43,10 +43,17 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
     }
   }
 
+  const handleSolutionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSolutionFile(e.target.files[0])
+    }
+  }
+
   const handleNext = () => {
     console.log("[CreateAssignment] handleNext called")
     console.log("[CreateAssignment] Assignment name:", assignmentName)
     console.log("[CreateAssignment] Rubric file:", rubricFile ? rubricFile.name : "No file")
+    console.log("[CreateAssignment] Solution file:", solutionFile ? solutionFile.name : "No file")
 
     // Validate required fields
     const newErrors: typeof errors = {}
@@ -55,12 +62,8 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
       newErrors.assignmentName = "Assignment name is required"
     }
 
-    if (!questionFile) {
-      newErrors.questionFile = "Question PDF is required"
-    }
-
-    if (!rubricFile) {
-      newErrors.rubricFile = "Rubric PDF is required"
+    if (!problemSetFile) {
+      newErrors.problemSetFile = "Problem Set PDF is required"
     }
 
     if (!startDate) {
@@ -90,7 +93,9 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
     }
 
     console.log("[CreateAssignment] Calling onCreate with assignment:", newAssignment)
-    onCreate(newAssignment, rubricFile)
+    console.log("[CreateAssignment] Problem set file:", problemSetFile ? problemSetFile.name : "No file")
+    console.log("[CreateAssignment] Solution file:", solutionFile ? solutionFile.name : "No file")
+    onCreate(newAssignment, rubricFile, problemSetFile, solutionFile)
     console.log("[CreateAssignment] onCreate called successfully")
   }
 
@@ -127,32 +132,35 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
               )}
             </div>
 
-            {/* Question Section */}
+            {/* Problem Set Section */}
             <div>
               <Label className="text-sm font-semibold">
-                Question <span className="text-red-600">*</span>
+                Problem Set PDF <span className="text-red-600">*</span>
               </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                The assignment questions that students will receive
+              </p>
               <div className="mt-2">
                 <label
-                  htmlFor="question-upload"
+                  htmlFor="problemset-upload"
                   className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed ${
-                    errors.questionFile ? "border-red-600" : "border-border"
+                    errors.problemSetFile ? "border-red-600" : "border-border"
                   } bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50`}
                 >
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
-                    {questionFile ? questionFile.name : "Upload PDF"}
+                    {problemSetFile ? problemSetFile.name : "Upload PDF"}
                   </span>
                   <input
-                    id="question-upload"
+                    id="problemset-upload"
                     type="file"
                     accept=".pdf"
                     className="sr-only"
-                    onChange={handleQuestionUpload}
+                    onChange={handleProblemSetUpload}
                   />
                 </label>
-                {errors.questionFile && (
-                  <p className="text-sm text-red-600 mt-1">{errors.questionFile}</p>
+                {errors.problemSetFile && (
+                  <p className="text-sm text-red-600 mt-1">{errors.problemSetFile}</p>
                 )}
               </div>
             </div>
@@ -160,18 +168,19 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
             {/* Rubric Section */}
             <div>
               <Label className="text-sm font-semibold">
-                Rubric <span className="text-red-600">*</span>
+                Rubric PDF <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload a rubric PDF or leave blank to auto-generate one using Claude from the problem set
+              </p>
               <div className="mt-2">
                 <label
                   htmlFor="rubric-upload"
-                  className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed ${
-                    errors.rubricFile ? "border-red-600" : "border-border"
-                  } bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50`}
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
                 >
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
-                    {rubricFile ? rubricFile.name : "Upload PDF"}
+                    {rubricFile ? rubricFile.name : "Upload PDF (Optional)"}
                   </span>
                   <input
                     id="rubric-upload"
@@ -181,9 +190,34 @@ export default function CreateAssignmentPage({ onBack, onCreate }: CreateAssignm
                     onChange={handleRubricUpload}
                   />
                 </label>
-                {errors.rubricFile && (
-                  <p className="text-sm text-red-600 mt-1">{errors.rubricFile}</p>
-                )}
+              </div>
+            </div>
+
+            {/* Solution Key Section */}
+            <div>
+              <Label className="text-sm font-semibold">
+                Solution Key PDF <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload the answer key for automatic grading. If not provided, grading will be manual only.
+              </p>
+              <div className="mt-2">
+                <label
+                  htmlFor="solution-upload"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-8 transition-colors hover:bg-muted/50"
+                >
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {solutionFile ? solutionFile.name : "Upload PDF (Optional)"}
+                  </span>
+                  <input
+                    id="solution-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="sr-only"
+                    onChange={handleSolutionUpload}
+                  />
+                </label>
               </div>
             </div>
 

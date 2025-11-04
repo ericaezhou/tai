@@ -8,6 +8,7 @@ import { StudentAssignmentDetail } from "@/components/student-assignment-detail"
 import { StudentQuestionDetail } from "@/components/student-question-detail"
 import { AssignmentSubmission } from "@/components/assignment-submission"
 import { AssignmentDetail } from "@/components/assignment-detail"
+import { SubmissionDetail } from "@/components/submission-detail"
 import RubricBreakdownPage, { type RubricBreakdown } from "@/components/rubric-breakdown"
 import Sidebar from "@/components/Sidebar"
 import { initializeDatabase } from "@/lib/seed-data"
@@ -27,6 +28,7 @@ import {
   type StudentPerformance
 } from "@/lib/queries"
 import { db } from "@/lib/database"
+import { parseRubricPDF, processSolutionKeyAction } from "./actions"
 
 export type Assignment = {
   id: string
@@ -35,6 +37,8 @@ export type Assignment = {
   rubric?: string
   rubricBreakdown?: RubricBreakdown
   students?: StudentScore[]
+  problemSetFile?: File | null
+  solutionFile?: File | null
 }
 
 export type StudentScore = {
@@ -42,6 +46,8 @@ export type StudentScore = {
   name: string
   email: string
   score: number
+  submissionId?: string
+  gradesReleased?: boolean
 }
 
 export type Course = {
@@ -56,6 +62,7 @@ export type StudentAssignment = {
   dueDate: string
   score?: number
   status: "graded" | "ungraded" | "not_submitted"
+  gradesReleased?: boolean
   questions?: Question[]
 }
 
@@ -70,12 +77,14 @@ export type Question = {
 
 export default function Page() {
   const [mode, setMode] = useState<"ta" | "student">("student") // Start in student mode to show the new functionality
-  const [view, setView] = useState<"overview" | "create" | "rubric" | "detail">("overview")
+  const [view, setView] = useState<"overview" | "create" | "rubric" | "detail" | "submission">("overview")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [rubricData, setRubricData] = useState<RubricBreakdown | null>(null)
   const [pendingAssignment, setPendingAssignment] = useState<Assignment | null>(null)
   const [courseId, setCourseId] = useState<string>('1') // Default to STAT 210 course
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
+  const [selectedStudentName, setSelectedStudentName] = useState<string>("")
 
   const [studentView, setStudentView] = useState<"overview" | "assignment" | "question" | "submission">("overview")
   const [selectedStudentAssignment, setSelectedStudentAssignment] = useState<DbStudentAssignment | null>(null)
@@ -134,14 +143,16 @@ export default function Page() {
             // Load student performance
             const studentPerformances = await getStudentPerformanceForAssignment(a.id, courseId)
 
-            // Convert to StudentScore type (filter out students without scores)
+            // Convert to StudentScore type (show all students who have submitted)
             const students: StudentScore[] = studentPerformances
-              .filter(s => s.score !== undefined)
+              .filter(s => s.submissionId !== undefined)
               .map(s => ({
                 id: s.id,
                 name: s.name,
                 email: s.email,
-                score: s.score!
+                score: s.score ?? 0,
+                submissionId: s.submissionId,
+                gradesReleased: s.gradesReleased
               }))
 
             return {
@@ -184,13 +195,15 @@ export default function Page() {
     reloadStudentData()
   }, [mode])
 
-  const handleCreateAssignment = async (assignment: Assignment, rubricFile: File | null) => {
+  const handleCreateAssignment = async (assignment: Assignment, rubricFile: File | null, problemSetFile: File | null, solutionFile: File | null) => {
     console.log("[Page] handleCreateAssignment called")
     console.log("[Page] Assignment:", assignment)
     console.log("[Page] Rubric file:", rubricFile ? rubricFile.name : "No file")
+    console.log("[Page] Problem set file:", problemSetFile ? problemSetFile.name : "No file")
+    console.log("[Page] Solution file:", solutionFile ? solutionFile.name : "No file")
 
-    // Store the pending assignment
-    setPendingAssignment(assignment)
+    // Store the pending assignment with both files
+    setPendingAssignment({ ...assignment, problemSetFile, solutionFile })
 
     // Show rubric view with loading state
     console.log("[Page] Setting view to 'rubric'")
@@ -198,68 +211,47 @@ export default function Page() {
     console.log("[Page] Setting rubricData to null (loading state)")
     setRubricData(null) // Clear previous data to show loading state
 
-    if (!rubricFile) {
-      console.log("[Page] No rubric file provided, using mock data")
-      // Fallback to mock data if no file provided
-      const mockRubricData: RubricBreakdown = {
-        assignmentName: assignment.name || "New Assignment",
-        questions: [
-          {
-            id: "1",
-            questionNumber: 1,
-            summary: "Implement a binary search algorithm with proper edge case handling",
-            totalPoints: 20,
-            criteria: [
-              { id: "1-1", points: 10, description: "Correct implementation" },
-              { id: "1-2", points: 5, description: "Edge cases handled" },
-              { id: "1-3", points: 5, description: "Code quality" },
-            ],
-          },
-          {
-            id: "2",
-            questionNumber: 2,
-            summary: "Analyze time and space complexity of given algorithms",
-            totalPoints: 25,
-            criteria: [
-              { id: "2-1", points: 15, description: "Time complexity analysis" },
-              { id: "2-2", points: 10, description: "Space complexity analysis" },
-            ],
-          },
-          {
-            id: "3",
-            questionNumber: 3,
-            summary: "Design and implement a linked list data structure",
-            totalPoints: 30,
-            criteria: [
-              { id: "3-1", points: 15, description: "Core functionality" },
-              { id: "3-2", points: 10, description: "Additional operations" },
-              { id: "3-3", points: 5, description: "Documentation" },
-            ],
-          },
-          {
-            id: "4",
-            questionNumber: 4,
-            summary: "Write a recursive solution for the Tower of Hanoi problem",
-            totalPoints: 25,
-            criteria: [
-              { id: "4-1", points: 12, description: "Correct recursion" },
-              { id: "4-2", points: 8, description: "Base case handling" },
-              { id: "4-3", points: 5, description: "Optimization" },
-            ],
-          },
-        ],
+    if (!rubricFile && problemSetFile) {
+      console.log("[Page] No rubric file provided, generating from problem set using Claude...")
+      // Generate rubric from problem set PDF using Claude
+      try {
+        console.log("[Page] Calling parseRubricPDF with problem set file:", problemSetFile.name)
+        const result = await parseRubricPDF(problemSetFile)
+        console.log("[Page] parseRubricPDF returned:", result)
+
+        if (result.success && result.rubricBreakdown) {
+          console.log("[Page] Successfully generated rubric from problem set")
+          const rubricWithName: RubricBreakdown = {
+            assignmentName: assignment.name || "New Assignment",
+            questions: result.rubricBreakdown.questions,
+          }
+          console.log("[Page] Setting generated rubric data:", rubricWithName)
+          setRubricData(rubricWithName)
+          console.log("[Page] Rubric data set successfully")
+          return
+        } else {
+          console.error("[Page] Failed to generate rubric from problem set:", result.error)
+          alert(`Failed to generate rubric from problem set: ${result.error}. Please upload a rubric PDF instead.`)
+          setPendingAssignment(null)
+          setView("create")
+          return
+        }
+      } catch (error) {
+        console.error("[Page] Error generating rubric from problem set:", error)
+        alert("An error occurred while generating the rubric. Please try uploading a rubric PDF instead.")
+        setPendingAssignment(null)
+        setView("create")
+        return
       }
-      console.log("[Page] Setting mock rubric data")
-      setRubricData(mockRubricData)
-      console.log("[Page] Mock data set, returning")
+    } else if (!rubricFile && !problemSetFile) {
+      console.error("[Page] No rubric file and no problem set file provided")
+      alert("Please provide either a rubric PDF or a problem set PDF to generate the rubric from.")
+      setPendingAssignment(null)
+      setView("create")
       return
     }
 
     console.log("[Page] Rubric file provided, starting API call")
-    // Import the API action dynamically to avoid server/client issues
-    console.log("[Page] Dynamically importing parseRubricPDF")
-    const { parseRubricPDF } = await import("./actions")
-    console.log("[Page] parseRubricPDF imported successfully")
 
     try {
       console.log("[Page] Calling parseRubricPDF with file:", rubricFile.name)
@@ -392,12 +384,55 @@ export default function Page() {
     setCourses(coursesData)
     console.log("[Page] Student data reloaded with new assignment")
 
-    // Clear pending assignment
+    // Clear pending assignment and return to overview FIRST (non-blocking UI)
+    const solutionFileToProcess = pendingAssignment.solutionFile
     setPendingAssignment(null)
-
-    // Return to overview
     setView("overview")
     console.log("[Page] Returned to overview")
+
+    // Extract solutions from solution PDF asynchronously in background (non-blocking)
+    if (solutionFileToProcess) {
+      console.log("[Page] Starting background solution extraction...");
+      // Don't await - let it run in background
+      void (async () => {
+        try {
+          const questionNumbers = updatedRubricData.questions.map(q => q.questionNumber)
+
+          console.log(`[Page] Processing ${questionNumbers.length} solutions from PDF in background...`)
+
+          const solutionResult = await processSolutionKeyAction(
+            solutionFileToProcess,
+            dbAssignment.id,
+            questionNumbers
+          )
+
+          if (solutionResult.success) {
+            console.log(`✅ Successfully extracted ${solutionResult.solutions?.length || 0} solutions in background`)
+          } else {
+            console.error('❌ Failed to extract solutions:', solutionResult.error)
+            console.warn('Assignment created but solution extraction failed. Manual grading will be required.')
+          }
+        } catch (error) {
+          console.error('[Page] Error extracting solutions in background:', error)
+          console.warn('Assignment created but solution extraction failed. Manual grading will be required.')
+        }
+      })()
+    } else {
+      console.log('[Page] No solution file provided - automatic grading will not be available')
+    }
+  }
+
+  const handleStudentClick = (studentId: string, submissionId: string) => {
+    console.log("[Page] Student clicked:", studentId, submissionId)
+
+    // Find the student name from the selected assignment
+    const student = selectedAssignment?.students?.find(s => s.id === studentId)
+    if (student) {
+      setSelectedStudentName(student.name)
+    }
+
+    setSelectedSubmissionId(submissionId)
+    setView("submission")
   }
 
   const handleSelectStudentAssignment = (assignment: DbStudentAssignment) => {
@@ -450,11 +485,14 @@ export default function Page() {
             const studentPerformances = await getStudentPerformanceForAssignment(a.id, courseId)
 
             const students: StudentScore[] = studentPerformances
-              .filter(s => s.score !== undefined)
+              .filter(s => s.submissionId !== undefined)
               .map(s => ({
                 id: s.id,
                 name: s.name,
-                score: s.score!
+                email: s.email,
+                score: s.score ?? 0,
+                submissionId: s.submissionId,
+                gradesReleased: s.gradesReleased
               }))
 
             return {
@@ -548,7 +586,19 @@ export default function Page() {
             />
           )}
           {view === "detail" && selectedAssignment && (
-            <AssignmentDetail assignment={selectedAssignment} onBack={() => setView("overview")} />
+            <AssignmentDetail
+              assignment={selectedAssignment}
+              onBack={() => setView("overview")}
+              onStudentClick={handleStudentClick}
+            />
+          )}
+          {view === "submission" && selectedSubmissionId && selectedAssignment && (
+            <SubmissionDetail
+              submissionId={selectedSubmissionId}
+              studentName={selectedStudentName}
+              assignmentName={selectedAssignment.name}
+              onBack={() => setView("detail")}
+            />
           )}
         </div>
       ) : (

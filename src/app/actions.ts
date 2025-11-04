@@ -1,8 +1,9 @@
 'use server'
 
 import { db } from '@/lib/database';
-import { Solution, StructuredAnswer } from '@/types';
+import { AssignmentQuestion, Solution, StructuredAnswer } from '@/types';
 import Anthropic from '@anthropic-ai/sdk';
+import { processSolutionKey, processStudentSubmission } from '@/lib/workflows/submission-grading';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -242,6 +243,116 @@ Important:
   }
 }
 
+/**
+ * Grade a specific extraction (used for multi-engine comparison)
+ * @param structuredAnswers - The extracted answers to grade
+ * @param assignmentId - The assignment ID
+ * @param solutions - Pre-loaded solutions
+ * @param questions - Pre-loaded questions
+ * @returns Grading results for each question
+ */
+export async function gradeSpecificExtraction(
+  structuredAnswers: StructuredAnswer[],
+  assignmentId: string,
+  solutions: Solution[],
+  questions: AssignmentQuestion[]
+): Promise<{
+  success: boolean;
+  grades?: Array<{
+    questionNumber: number;
+    pointsAwarded: number;
+    maxPoints: number;
+    feedback: string;
+  }>;
+  overallFeedback?: string;
+  error?: string;
+}> {
+  try {
+    var payload: { solution: Solution, structuredAnswer: StructuredAnswer, questionId: string, maxPoints: number }[] = [];
+    for (const ans of structuredAnswers) {
+      const questionNumber = ans.questionNumber;
+      const solution = solutions.find(s => s.id === `solution-${questionNumber}`) || solutions[questionNumber - 1];
+      const question = questions.find(q => q.orderIndex === questionNumber - 1);
+
+      if (question) {
+        payload.push({
+          solution,
+          structuredAnswer: ans,
+          questionId: question.id,
+          maxPoints: question.totalPoints
+        });
+      }
+    }
+
+    // Create a detailed prompt for grading
+    const gradingPrompt = `You are an expert grader. Grade each student answer against the provided solution and return a structured JSON response.
+
+For each question, provide:
+1. Points awarded (out of the maximum points)
+2. Detailed feedback explaining the grade
+3. Specific areas where the student did well or needs improvement
+
+Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "grades": [
+    {
+      "questionNumber": 1,
+      "pointsAwarded": 8,
+      "maxPoints": 10,
+      "feedback": "Detailed feedback explaining the grade, what was correct, what was missing, and suggestions for improvement."
+    }
+  ],
+  "overallFeedback": "General comments about the student's performance across all questions."
+}
+
+Student answers and solutions to grade:
+${JSON.stringify(payload, null, 2)}`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096 * 2,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: gradingPrompt }
+        ]
+      }],
+    });
+
+    // Extract and parse the response
+    const textContent = response.content.find(block => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text content in grading response');
+    }
+
+    let gradingData;
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = textContent.text.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/```json\n?|\n?```/g, '').trim();
+      }
+      gradingData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error('Failed to parse grading JSON:', textContent.text);
+      throw new Error('Failed to parse grading data from Claude response');
+    }
+
+    return {
+      success: true,
+      grades: gradingData.grades,
+      overallFeedback: gradingData.overallFeedback || '',
+    };
+
+  } catch (error) {
+    console.error('Error grading extraction:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
 export async function gradeAssignment(assignmentId: string, studentId: string) {
   try {
     const questions = await db.getAssignmentQuestions(assignmentId);
@@ -384,8 +495,168 @@ ${JSON.stringify(payload, null, 2)}`;
   }
 }
 
+/**
+ * Server action to process solution key PDF
+ * Extracts solutions from the question PDF
+ */
+export async function processSolutionKeyAction(
+  pdfFile: File,
+  assignmentId: string,
+  questionNumbers: number[]
+) {
+  try {
+    console.log(`[Actions] Processing solution key for assignment ${assignmentId}`);
+    console.log(`[Actions] File: ${pdfFile.name} (${pdfFile.size} bytes)`);
+
+    // Convert File to Buffer inside server action (File objects CAN be serialized)
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    const pdfBuffer = Buffer.from(arrayBuffer);
+
+    const result = await processSolutionKey(
+      pdfBuffer,
+      assignmentId,
+      pdfFile.name,
+      questionNumbers
+    );
+
+    return result;
+  } catch (error) {
+    console.error('[Actions] Error processing solution key:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+/**
+ * Server action to process student submission
+ * Extracts and grades student answers from PDF using multi-engine approach
+ */
+export async function processStudentSubmissionAction(
+  pdfFile: File,
+  assignmentId: string,
+  studentId: string,
+  questionNumbers: number[]
+) {
+  try {
+    console.log(`[Actions] Processing student submission for ${studentId}, assignment ${assignmentId}`);
+    console.log(`[Actions] File: ${pdfFile.name} (${pdfFile.size} bytes)`);
+
+    // Convert File to Buffer inside server action (File objects CAN be serialized)
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    const pdfBuffer = Buffer.from(arrayBuffer);
+
+    const result = await processStudentSubmission(
+      pdfBuffer,
+      assignmentId,
+      studentId,
+      questionNumbers
+    );
+
+    return result;
+  } catch (error) {
+    console.error('[Actions] Error processing student submission:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+/**
+ * Server action to release grades for a specific submission
+ * Makes grades visible to students after TA review
+ */
+export async function releaseGradesForSubmission(submissionId: string) {
+  try {
+    console.log(`[Actions] Releasing grades for submission ${submissionId}`);
+
+    const submission = await db.getStudentSubmission(submissionId);
+
+    if (!submission) {
+      return {
+        success: false,
+        error: 'Submission not found',
+      };
+    }
+
+    if (submission.status !== 'graded') {
+      return {
+        success: false,
+        error: 'Cannot release grades for ungraded submission',
+      };
+    }
+
+    // Update submission to release grades
+    submission.gradesReleased = true;
+    submission.updatedAt = new Date();
+    await db.saveStudentSubmission(submission);
+
+    console.log(`✅ Grades released for submission ${submissionId}`);
+
+    return {
+      success: true,
+      submissionId,
+    };
+  } catch (error) {
+    console.error('[Actions] Error releasing grades:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+/**
+ * Server action to release grades for all submissions in an assignment
+ * Bulk operation for TAs to release all graded work at once
+ */
+export async function releaseAllGradesForAssignment(assignmentId: string) {
+  try {
+    console.log(`[Actions] Releasing all grades for assignment ${assignmentId}`);
+
+    const assignment = await db.getAssignment(assignmentId);
+    if (!assignment) {
+      return {
+        success: false,
+        error: 'Assignment not found',
+      };
+    }
+
+    // Get all students enrolled in the course
+    const enrollments = await db.getCourseEnrollments(assignment.courseId);
+    let releasedCount = 0;
+    const errors: string[] = [];
+
+    for (const enrollment of enrollments) {
+      const submission = await db.getStudentSubmissionByAssignment(assignmentId, enrollment.studentId);
+
+      if (submission && submission.status === 'graded' && !submission.gradesReleased) {
+        submission.gradesReleased = true;
+        submission.updatedAt = new Date();
+        await db.saveStudentSubmission(submission);
+        releasedCount++;
+      }
+    }
+
+    console.log(`✅ Released grades for ${releasedCount} submissions`);
+
+    return {
+      success: true,
+      releasedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (error) {
+    console.error('[Actions] Error releasing all grades:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
 // Utility function to generate unique IDs
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
-
