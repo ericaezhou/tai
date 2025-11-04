@@ -2,6 +2,8 @@
 
 > Autonomous AI-powered grading system to reduce TA workload by automatically grading student submissions from handwritten PDFs.
 
+🌐 **[Visit our website](https://ericaezhou.github.io/tai/)** | 📝 **[Join the waitlist](https://tally.so/r/44XQ05)**
+
 ## Overview
 
 TAI (Teaching Assistant Intelligence) is a Next.js application that automates the grading process for educational assignments. It uses multi-engine OCR to extract handwritten work from PDFs, Claude AI to grade submissions based on rubrics, and provides a comprehensive interface for both instructors and students.
